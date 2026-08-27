@@ -1,0 +1,1477 @@
+[ {
+  "id" : 1,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 50 triệu cho Nguyễn Văn An tại Vietcombank STK 0123456789",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "VCB",
+    "accountNumber" : "0123456789",
+    "amount" : 50000000
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Ngoại thương Việt Nam (Mã: VCB, BIN: 970436, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 0123456789: Chủ tài khoản Lâm Thu Hà (Trạng thái: ACTIVE, Số dư khả dụng: 434.875.013 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 50,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.",
+  "latencyMs" : 2827,
+  "success" : true
+}, {
+  "id" : 2,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 25tr cho Tran Thi Mai ngân hàng BIDV số tài khoản 987654321",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "BIDV",
+    "accountNumber" : "987654321",
+    "amount" : 25000000,
+    "beneficiaryAccount" : "987654321",
+    "beneficiaryName" : "Tran Thi Mai"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (Mã: BIDV, BIN: 970418, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 987654321: Chủ tài khoản Nguyễn Hoàng Long (Trạng thái: ACTIVE, Số dư khả dụng: 82.024.373 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 25,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 3223,
+  "success" : true
+}, {
+  "id" : 3,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển khoản 100 triệu sang Vietinbank cho Le Hoang Long stk 1020304050",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "CTG",
+    "accountNumber" : "1020304050",
+    "amount" : 100000000,
+    "beneficiaryAccount" : "1020304050",
+    "beneficiaryName" : "Le Hoang Long"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Công thương Việt Nam (Mã: CTG, BIN: 970415, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 1020304050: Chủ tài khoản Trần Thanh Tùng (Trạng thái: ACTIVE, Số dư khả dụng: 149.991.761 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 100,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 3256,
+  "success" : true
+}, {
+  "id" : 4,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển tiền 1.5 tỷ cho Công ty TNHH Hải Đăng tại Techcombank STK 19034567890123",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "TCB",
+    "accountNumber" : "19034567890123",
+    "amount" : 1500000000,
+    "beneficiaryAccount" : "19034567890123",
+    "beneficiaryName" : "Công ty TNHH Hải Đăng"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Kỹ thương Việt Nam (Mã: TCB, BIN: 970407, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 19034567890123: Chủ tài khoản Nguyễn Quang Huy (Trạng thái: ACTIVE, Số dư khả dụng: 267.443.952 VND).\n\nSố tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nPhí chuyển khoản cho số tiền 1,500,000,000 VND: Phí cơ bản 25,000 VND + VAT 10% (2,500 VND) = Tổng phí 27,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 3167,
+  "success" : true
+}, {
+  "id" : 5,
+  "category" : "Chuyển khoản",
+  "prompt" : "transfer 15tr cho Phạm Quỳnh Nga tại VCB stk 001100223344",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "VCB",
+    "accountNumber" : "001100223344",
+    "amount" : 15000000,
+    "beneficiaryAccount" : "001100223344",
+    "beneficiaryName" : "Phạm Quỳnh Nga"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Ngoại thương Việt Nam (Mã: VCB, BIN: 970436, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 001100223344: Chủ tài khoản Lê Quỳnh Nga (Trạng thái: ACTIVE, Số dư khả dụng: 271.758.784 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 15,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 3385,
+  "success" : true
+}, {
+  "id" : 6,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 500k cho Nguyen Duc Thang ngân hàng MB STK 0988123456",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "MB",
+    "amount" : 500000
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP MB (Mã: MB, BIN: 970499, Chuyển nhanh 24/7: Khả dụng).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 500,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.",
+  "latencyMs" : 3102,
+  "success" : true
+}, {
+  "id" : 7,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 30.000.000 VND cho Hoàng Kim Ngân tại Sacombank số tài khoản 060123456789",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "STB",
+    "amount" : 30000000,
+    "beneficiaryAccount" : "060123456789",
+    "accountNumber" : "060123456789"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP STB (Mã: STB, BIN: 970499, Chuyển nhanh 24/7: Khả dụng).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 30,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nTài khoản 060123456789: Chủ tài khoản Huỳnh Gia Huy (Trạng thái: ACTIVE, Số dư khả dụng: 189.785.355 VND).",
+  "latencyMs" : 3557,
+  "success" : true
+}, {
+  "id" : 8,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 200 tr cho Bùi Tuấn Kiệt tại VPBank STK 1234567899",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "VPB",
+    "accountNumber" : "1234567899",
+    "amount" : 200000000,
+    "beneficiaryAccount" : "1234567899",
+    "beneficiaryName" : "Bùi Tuấn Kiệt"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP VPB (Mã: VPB, BIN: 970499, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 1234567899: Chủ tài khoản Đoàn Hữu Phước (Trạng thái: ACTIVE, Số dư khả dụng: 104.162.780 VND).\n\nSố tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nPhí chuyển khoản cho số tiền 200,000,000 VND: Phí cơ bản 25,000 VND + VAT 10% (2,500 VND) = Tổng phí 27,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 2651,
+  "success" : true
+}, {
+  "id" : 9,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 5 triệu cho Do Gia Huy ở ACB tài khoản 88889999",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "ACB",
+    "accountNumber" : "88889999",
+    "amount" : 5000000,
+    "beneficiaryAccount" : "88889999"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP ACB (Mã: ACB, BIN: 970499, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 88889999: Chủ tài khoản Đinh Gia Huy (Trạng thái: ACTIVE, Số dư khả dụng: 219.566.144 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 5,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen",
+  "latencyMs" : 1983,
+  "success" : true
+}, {
+  "id" : 10,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển tiền nhanh 80 triệu cho Ho Bao Tram tại TPBank STK 02345678901",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "TPB",
+    "amount" : 80000000,
+    "beneficiaryAccount" : "02345678901",
+    "beneficiaryName" : "Ho Bao Tram"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP TPB (Mã: TPB, BIN: 970499, Chuyển nhanh 24/7: Khả dụng).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 80,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 2166,
+  "success" : true
+}, {
+  "id" : 11,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 12tr cho Vu Khanh Linh tại VCB STK 0451000345678",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "VCB",
+    "accountNumber" : "0451000345678",
+    "amount" : 12000000,
+    "beneficiaryAccount" : "0451000345678"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Ngoại thương Việt Nam (Mã: VCB, BIN: 970436, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 0451000345678: Chủ tài khoản Dương Khánh Linh (Trạng thái: ACTIVE, Số dư khả dụng: 232.818.227 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 12,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen",
+  "latencyMs" : 2662,
+  "success" : true
+}, {
+  "id" : 12,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 45 triệu cho Dang Quang Huy ở CTG STK 711A12345678",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "CTG",
+    "amount" : 45000000,
+    "beneficiaryAccount" : "711A12345678",
+    "accountNumber" : "711A12345678"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Công thương Việt Nam (Mã: CTG, BIN: 970415, Chuyển nhanh 24/7: Khả dụng).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 45,000,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nTài khoản 711A12345678: Chủ tài khoản Hồ Khánh Linh (Trạng thái: ACTIVE, Số dư khả dụng: 177.275.278 VND).",
+  "latencyMs" : 3443,
+  "success" : true
+}, {
+  "id" : 13,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển khoản 2 tỷ cho Pham Thanh Tung tại TCB STK 19123456789012",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 2000000000,
+    "bankCode" : "TCB",
+    "accountNumber" : "19123456789012",
+    "beneficiaryAccount" : "19123456789012"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Số tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nPhí chuyển khoản cho số tiền 2,000,000,000 VND: Phí cơ bản 25,000 VND + VAT 10% (2,500 VND) = Tổng phí 27,500 VND.\n\nNgân hàng: Ngân hàng TMCP Kỹ thương Việt Nam (Mã: TCB, BIN: 970407, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 19123456789012: Chủ tài khoản Lê Gia Huy (Trạng thái: ACTIVE, Số dư khả dụng: 57.120.860 VND).\n\nĐã thực thi risk.transfer.screen",
+  "latencyMs" : 2805,
+  "success" : true
+}, {
+  "id" : 14,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 700k cho Ngo Thi Mai Phuong ở BIDV STK 12410001234567",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "BIDV",
+    "accountNumber" : "12410001234567",
+    "amount" : 700000,
+    "beneficiaryAccount" : "12410001234567",
+    "beneficiaryName" : "Ngo Thi Mai Phuong"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (Mã: BIDV, BIN: 970418, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 12410001234567: Chủ tài khoản Vũ Đức Thắng (Trạng thái: ACTIVE, Số dư khả dụng: 295.747.938 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nPhí chuyển khoản cho số tiền 700,000 VND: Phí cơ bản 15,000 VND + VAT 10% (1,500 VND) = Tổng phí 16,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 2809,
+  "success" : true
+}, {
+  "id" : 15,
+  "category" : "Chuyển khoản",
+  "prompt" : "chuyển 350 triệu cho Ly Ngoc Linh tại Vietcombank STK 0071000987654",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "bankCode" : "VCB",
+    "accountNumber" : "0071000987654",
+    "amount" : 350000000,
+    "beneficiaryAccount" : "0071000987654",
+    "beneficiaryName" : "Ly Ngoc Linh"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:bank.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transfer.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:pricing.transfer.fee", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.transfer.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:transaction.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Ngân hàng: Ngân hàng TMCP Ngoại thương Việt Nam (Mã: VCB, BIN: 970436, Chuyển nhanh 24/7: Khả dụng).\n\nTài khoản 0071000987654: Chủ tài khoản Lý Thùy Dung (Trạng thái: ACTIVE, Số dư khả dụng: 193.080.435 VND).\n\nSố tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nPhí chuyển khoản cho số tiền 350,000,000 VND: Phí cơ bản 25,000 VND + VAT 10% (2,500 VND) = Tổng phí 27,500 VND.\n\nĐã thực thi risk.transfer.screen\n\nĐã thực thi transaction.draft.validate",
+  "latencyMs" : 2303,
+  "success" : true
+}, {
+  "id" : 16,
+  "category" : "Nộp tiền mặt",
+  "prompt" : "nộp 100 triệu vào tài khoản 3456789 cho Nguyễn Minh Anh",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "3456789",
+    "amount" : 100000000,
+    "transactionType" : "CASH_DEPOSIT"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.draft.validate", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.cash.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 3456789: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 250.000.000 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nĐã thực thi cash.draft.validate\n\nĐã thực thi risk.cash.screen",
+  "latencyMs" : 2622,
+  "success" : true
+}, {
+  "id" : 17,
+  "category" : "Nộp tiền mặt",
+  "prompt" : "nộp tiền mặt 50tr vào số tài khoản 012345678901",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "012345678901",
+    "amount" : 50000000,
+    "transactionType" : "CASH_DEPOSIT"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 012345678901: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 42.500.000 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nĐã thực thi cash.draft.validate",
+  "latencyMs" : 2228,
+  "success" : true
+}, {
+  "id" : 18,
+  "category" : "Nộp tiền mặt",
+  "prompt" : "khách hàng nộp 200 triệu tiền mặt vào tài khoản 987654321",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "987654321",
+    "amount" : 200000000,
+    "transactionType" : "CASH_DEPOSIT"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.draft.validate", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.cash.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 987654321: Chủ tài khoản Nguyễn Hoàng Long (Trạng thái: ACTIVE, Số dư khả dụng: 82.024.373 VND).\n\nSố tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nĐã thực thi cash.draft.validate\n\nĐã thực thi risk.cash.screen",
+  "latencyMs" : 2418,
+  "success" : true
+}, {
+  "id" : 19,
+  "category" : "Nộp tiền mặt",
+  "prompt" : "nộp 500 triệu vào STK 1020304050",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "1020304050",
+    "amount" : 500000000,
+    "transactionType" : "CASH_DEPOSIT"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.draft.validate", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.cash.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 1020304050: Chủ tài khoản Trần Thanh Tùng (Trạng thái: ACTIVE, Số dư khả dụng: 149.991.761 VND).\n\nSố tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nĐã thực thi cash.draft.validate\n\nĐã thực thi risk.cash.screen",
+  "latencyMs" : 2307,
+  "success" : true
+}, {
+  "id" : 20,
+  "category" : "Nộp tiền mặt",
+  "prompt" : "nộp 20 triệu tiền mặt cho chủ tài khoản Tran Thi Mai",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 20000000,
+    "transactionType" : "CASH_DEPOSIT"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.cash.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Trong hạn mức GDV tự phê duyệt.\n\nĐã thực thi risk.cash.screen",
+  "latencyMs" : 2599,
+  "success" : true
+}, {
+  "id" : 21,
+  "category" : "Rút tiền mặt",
+  "prompt" : "rút 50 triệu tiền mặt từ tài khoản 3456789",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "3456789",
+    "amount" : 50000000,
+    "transactionType" : "CASH_WITHDRAWAL"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.cash.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 3456789: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 250.000.000 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nĐã thực thi risk.cash.screen",
+  "latencyMs" : 2439,
+  "success" : true
+}, {
+  "id" : 22,
+  "category" : "Rút tiền mặt",
+  "prompt" : "rút tiền 100 triệu từ số tài khoản 012345678901",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "012345678901",
+    "amount" : 100000000,
+    "transactionType" : "CASH_WITHDRAWAL"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:cash.draft.validate", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 012345678901: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 42.500.000 VND).\n\nTrong hạn mức GDV tự phê duyệt.\n\nĐã thực thi cash.draft.validate",
+  "latencyMs" : 1767,
+  "success" : true
+}, {
+  "id" : 23,
+  "category" : "Rút tiền mặt",
+  "prompt" : "khách hàng muốn rút 300 triệu tiền mặt tại quầy",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 300000000,
+    "transactionType" : "CASH_WITHDRAWAL",
+    "query" : "hạn mức rút tiền mặt tại quầy"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.cash.screen", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:knowledge.policy.search", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Số tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nĐã thực thi risk.cash.screen\n\nGDV phải đối chiếu số tài khoản, chủ tài khoản, số tiền và chứng từ trước khi xác nhận giao dịch tiền mặt.",
+  "latencyMs" : 2593,
+  "success" : true
+}, {
+  "id" : 24,
+  "category" : "Rút tiền mặt",
+  "prompt" : "rút 20tr tiền mặt từ tài khoản của Nguyễn Minh Anh",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 20000000,
+    "transactionType" : "CASH_WITHDRAWAL"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Trong hạn mức GDV tự phê duyệt.",
+  "latencyMs" : 3020,
+  "success" : true
+}, {
+  "id" : 25,
+  "category" : "Rút tiền mặt",
+  "prompt" : "rút tiền mặt 1.2 tỷ từ tài khoản doanh nghiệp",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 1200000000,
+    "transactionType" : "CASH_WITHDRAWAL"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:cash.limit.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:risk.cash.screen", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Số tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt.\n\nĐã thực thi risk.cash.screen",
+  "latencyMs" : 2268,
+  "success" : true
+}, {
+  "id" : 26,
+  "category" : "Chân dung 360",
+  "prompt" : "Phân tích chân dung khách hàng và hành vi chi tiêu của CIF-0001842",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-0001842"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.list", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Nguyễn Minh Anh (PRIORITY): Nhóm 'Doanh nhân / Chủ hộ kinh doanh vừa và nhỏ', gắn bó 64 tháng, kênh ưa chuộng: Quầy giao dịch & Thẻ (60%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nKhách hàng Nguyễn Minh Anh (CIF: CIF-0001842) · Phân hạng: PRIORITY · KYC: VERIFIED · Xếp hạng rủi ro: LOW.\n\nKhách hàng Nguyễn Minh Anh (PRIORITY) sở hữu 2 tài khoản thanh toán (tổng 292,5 tr VND) và 1 sổ tiết kiệm (1,5 tỷ VND).\n\nKhách hàng có 2 tài khoản thanh toán khả dụng: •••• 6789 (250 tr VND), •••• 8901 (42,5 tr VND).\n\nTín dụng KH Nguyễn Minh Anh: Điểm tín nhiệm 743/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 200 tr VND.",
+  "latencyMs" : 2017,
+  "success" : true
+}, {
+  "id" : 27,
+  "category" : "Chân dung 360",
+  "prompt" : "Xem chân dung 360 và khẩu vị đầu tư của khách hàng CIF-992211",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-992211"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Phạm Hồng Nhung (PRIORITY): Nhóm 'Khách hàng cao cấp ưa chuộng tiện ích đặc quyền', gắn bó 19 tháng, kênh ưa chuộng: Quầy giao dịch & Thẻ (60%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.",
+  "latencyMs" : 1125,
+  "success" : true
+}, {
+  "id" : 28,
+  "category" : "Chân dung 360",
+  "prompt" : "Phân tích thói quen giao dịch và kênh ưa thích của CIF-334455",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-334455"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Trần Minh Anh (DIAMOND_VIP): Nhóm 'Doanh nhân / Chủ hộ kinh doanh vừa và nhỏ', gắn bó 40 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nKhách hàng Trần Minh Anh (CIF: CIF-334455) · Phân hạng: DIAMOND_VIP · KYC: VERIFIED · Xếp hạng rủi ro: LOW.\n\nKhách hàng Trần Minh Anh (DIAMOND_VIP) sở hữu 3 tài khoản thanh toán (tổng 407 tr VND) và 0 sổ tiết kiệm (0 VND).",
+  "latencyMs" : 1969,
+  "success" : true
+}, {
+  "id" : 29,
+  "category" : "Chân dung 360",
+  "prompt" : "Đánh giá mức độ gắn bó và phân khúc của khách hàng CIF-778899",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-778899"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Dương Thanh Hằng (DIAMOND_VIP): Nhóm 'Nhà đầu tư tích lũy & Tiết kiệm thông minh', gắn bó 17 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nKhách hàng Dương Thanh Hằng (CIF: CIF-778899) · Phân hạng: DIAMOND_VIP · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.",
+  "latencyMs" : 2068,
+  "success" : true
+}, {
+  "id" : 30,
+  "category" : "Chân dung 360",
+  "prompt" : "Chân dung tài chính và hành vi thanh toán của CIF-123678",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-123678"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Phạm Thế Vinh (STANDARD): Nhóm 'Nhà đầu tư tích lũy & Tiết kiệm thông minh', gắn bó 17 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: THẬN TRỌNG & BẢO TOÀN VỐN.\n\nKhách hàng Phạm Thế Vinh (CIF: CIF-123678) · Phân hạng: STANDARD · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.\n\nKhách hàng Phạm Thế Vinh (STANDARD) sở hữu 1 tài khoản thanh toán (tổng 127 tr VND) và 1 sổ tiết kiệm (800 tr VND).",
+  "latencyMs" : 2197,
+  "success" : true
+}, {
+  "id" : 31,
+  "category" : "Chân dung 360",
+  "prompt" : "Phân tích hồ sơ khách hàng 360 CIF-556677",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-556677"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.list", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phạm Kim Ngân (CIF: CIF-556677) · Phân hạng: PRIORITY · KYC: VERIFIED · Xếp hạng rủi ro: LOW.\n\nKhách hàng Phạm Kim Ngân (PRIORITY) sở hữu 1 tài khoản thanh toán (tổng 341 tr VND) và 0 sổ tiết kiệm (0 VND).\n\nChân dung KH Phạm Kim Ngân (PRIORITY): Nhóm 'Khách hàng cao cấp ưa chuộng tiện ích đặc quyền', gắn bó 79 tháng, kênh ưa chuộng: Quầy giao dịch & Thẻ (60%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nTín dụng KH Phạm Kim Ngân: Điểm tín nhiệm 682/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 200 tr VND.\n\nKhách hàng có 1 tài khoản thanh toán khả dụng: •••• 2201 (341 tr VND).\n\nKhách hàng Phạm Kim Ngân có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.\n\nTop 3 Offer tư vấn cho KH Phạm Kim Ngân (PRIORITY): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.",
+  "latencyMs" : 2243,
+  "success" : true
+}, {
+  "id" : 32,
+  "category" : "Chân dung 360",
+  "prompt" : "Khách hàng CIF-889977 thuộc nhóm chân dung nào và khẩu vị rủi ro ra sao?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-889977"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Phạm Hồng Nhung (STANDARD): Nhóm 'Khách hàng cao cấp ưa chuộng tiện ích đặc quyền', gắn bó 18 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: THẬN TRỌNG & BẢO TOÀN VỐN.",
+  "latencyMs" : 2393,
+  "success" : true
+}, {
+  "id" : 33,
+  "category" : "Chân dung 360",
+  "prompt" : "Tra cứu hành vi sử dụng dịch vụ ngân hàng số của CIF-445566",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-445566"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Trần Hữu Phước (STANDARD): Nhóm 'Doanh nhân / Chủ hộ kinh doanh vừa và nhỏ', gắn bó 76 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: THẬN TRỌNG & BẢO TOÀN VỐN.",
+  "latencyMs" : 1344,
+  "success" : true
+}, {
+  "id" : 34,
+  "category" : "Chân dung 360",
+  "prompt" : "Phân tích chân dung khách hàng VIP CIF-990011",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-990011"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Nguyễn Hoàng Long (GOLD): Nhóm 'Chuyên viên công nghệ & Người tiêu dùng số', gắn bó 56 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: THẬN TRỌNG & BẢO TOÀN VỐN.\n\nKhách hàng Nguyễn Hoàng Long (CIF: CIF-990011) · Phân hạng: GOLD · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.\n\nKhách hàng Nguyễn Hoàng Long (GOLD) sở hữu 3 tài khoản thanh toán (tổng 885 tr VND) và 1 sổ tiết kiệm (251 tr VND).\n\nTín dụng KH Nguyễn Hoàng Long: Điểm tín nhiệm 701/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 50 tr VND.\n\nTop 3 Offer tư vấn cho KH Nguyễn Hoàng Long (GOLD): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.",
+  "latencyMs" : 2034,
+  "success" : true
+}, {
+  "id" : 35,
+  "category" : "Chân dung 360",
+  "prompt" : "Xem thông tin persona và kênh giao dịch chủ yếu của CIF-223344",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-223344"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Phan Thùy Dung (DIAMOND_VIP): Nhóm 'Khách hàng cao cấp ưa chuộng tiện ích đặc quyền', gắn bó 23 tháng, kênh ưa chuộng: Quầy giao dịch & Thẻ (60%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nKhách hàng Phan Thùy Dung (CIF: CIF-223344) · Phân hạng: DIAMOND_VIP · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.",
+  "latencyMs" : 1310,
+  "success" : true
+}, {
+  "id" : 36,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Kiểm tra điểm tín dụng CIC và hạn mức vay khả dụng của CIF-0001842",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-0001842"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Nguyễn Minh Anh: Điểm tín nhiệm 743/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 200 tr VND.",
+  "latencyMs" : 1003,
+  "success" : true
+}, {
+  "id" : 37,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Tra cứu điểm tín nhiệm nội bộ và lịch sử nợ xấu CIC của CIF-992211",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-992211"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Phạm Hồng Nhung: Điểm tín nhiệm 758/850 (AAA (Xuất sắc)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 200 tr VND.",
+  "latencyMs" : 1519,
+  "success" : true
+}, {
+  "id" : 38,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Khách hàng CIF-334455 có nợ xấu CIC không và vay được bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-334455"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Trần Minh Anh: Điểm tín nhiệm 767/850 (AAA (Xuất sắc)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 500 tr VND.\n\nKhách hàng Trần Minh Anh (CIF: CIF-334455) · Phân hạng: DIAMOND_VIP · KYC: VERIFIED · Xếp hạng rủi ro: LOW.",
+  "latencyMs" : 1154,
+  "success" : true
+}, {
+  "id" : 39,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Chấm điểm tín dụng cho khách hàng CIF-556677",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-556677"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Phạm Kim Ngân: Điểm tín nhiệm 682/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 200 tr VND.",
+  "latencyMs" : 829,
+  "success" : true
+}, {
+  "id" : 40,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Xem hạn mức vay phê duyệt trước của CIF-889977",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-889977"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Phạm Hồng Nhung: Điểm tín nhiệm 803/850 (AAA (Xuất sắc)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 50 tr VND.",
+  "latencyMs" : 1690,
+  "success" : true
+}, {
+  "id" : 41,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Kiểm tra điểm CIC và nhóm nợ của CIF-123456",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-123456"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Võ Tuấn Kiệt: Điểm tín nhiệm 784/850 (AAA (Xuất sắc)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 50 tr VND.",
+  "latencyMs" : 1396,
+  "success" : true
+}, {
+  "id" : 42,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Tra cứu khả năng cấp hạn mức thấu chi tín chấp cho CIF-778899",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-778899"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Dương Thanh Hằng: Điểm tín nhiệm 695/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 500 tr VND.\n\nKhách hàng Dương Thanh Hằng (CIF: CIF-778899) · Phân hạng: DIAMOND_VIP · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.\n\nKhách hàng Dương Thanh Hằng (DIAMOND_VIP) sở hữu 3 tài khoản thanh toán (tổng 315 tr VND) và 1 sổ tiết kiệm (1,4 tỷ VND).",
+  "latencyMs" : 1819,
+  "success" : true
+}, {
+  "id" : 43,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Điểm tín dụng khách hàng CIF-445566 hiện tại là bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-445566"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Trần Hữu Phước: Điểm tín nhiệm 814/850 (AAA (Xuất sắc)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 50 tr VND.",
+  "latencyMs" : 1179,
+  "success" : true
+}, {
+  "id" : 44,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Kiểm tra nhóm nợ CIC và uy tín tín dụng của CIF-667788",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-667788"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Đinh Hoàng Long: Điểm tín nhiệm 756/850 (AAA (Xuất sắc)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 50 tr VND.",
+  "latencyMs" : 951,
+  "success" : true
+}, {
+  "id" : 45,
+  "category" : "Chấm điểm tín dụng",
+  "prompt" : "Hạn mức vay vốn tối đa duyệt trước cho CIF-112233 là bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-112233"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tín dụng KH Lâm Anh Dũng: Điểm tín nhiệm 717/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 50 tr VND.",
+  "latencyMs" : 1392,
+  "success" : true
+}, {
+  "id" : 46,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Tư vấn gợi ý gói sản phẩm ưu đãi và offer phù hợp cho khách hàng CIF-0001842",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-0001842"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Top 3 Offer tư vấn cho KH Nguyễn Minh Anh (PRIORITY): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.\n\nKhách hàng Nguyễn Minh Anh (CIF: CIF-0001842) · Phân hạng: PRIORITY · KYC: VERIFIED · Xếp hạng rủi ro: LOW.\n\nChân dung KH Nguyễn Minh Anh (PRIORITY): Nhóm 'Doanh nhân / Chủ hộ kinh doanh vừa và nhỏ', gắn bó 64 tháng, kênh ưa chuộng: Quầy giao dịch & Thẻ (60%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nKhách hàng Nguyễn Minh Anh (PRIORITY) sở hữu 2 tài khoản thanh toán (tổng 292,5 tr VND) và 1 sổ tiết kiệm (1,5 tỷ VND).",
+  "latencyMs" : 2167,
+  "success" : true
+}, {
+  "id" : 47,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Gợi ý các ưu đãi và chương trình khuyến nghị cho CIF-992211",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-992211"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Top 3 Offer tư vấn cho KH Phạm Hồng Nhung (PRIORITY): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.",
+  "latencyMs" : 1035,
+  "success" : true
+}, {
+  "id" : 48,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Đề xuất sản phẩm phù hợp tiếp theo (Next-Best-Offer) cho CIF-334455",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-334455"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Top 3 Offer tư vấn cho KH Trần Minh Anh (DIAMOND_VIP): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.",
+  "latencyMs" : 981,
+  "success" : true
+}, {
+  "id" : 49,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Tư vấn mở thêm thẻ tín dụng hoàn tiền hoặc gói vay cho CIF-556677",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-556677"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phạm Kim Ngân (CIF: CIF-556677) · Phân hạng: PRIORITY · KYC: VERIFIED · Xếp hạng rủi ro: LOW.\n\nChân dung KH Phạm Kim Ngân (PRIORITY): Nhóm 'Khách hàng cao cấp ưa chuộng tiện ích đặc quyền', gắn bó 79 tháng, kênh ưa chuộng: Quầy giao dịch & Thẻ (60%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nTín dụng KH Phạm Kim Ngân: Điểm tín nhiệm 682/850 (AA (Tốt)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 200 tr VND.\n\nTop 3 Offer tư vấn cho KH Phạm Kim Ngân (PRIORITY): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.\n\nKhách hàng Phạm Kim Ngân có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.\n\nKhách hàng Phạm Kim Ngân (PRIORITY) sở hữu 1 tài khoản thanh toán (tổng 341 tr VND) và 0 sổ tiết kiệm (0 VND).",
+  "latencyMs" : 1764,
+  "success" : true
+}, {
+  "id" : 50,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Có gói ưu đãi lãi suất nào phù hợp cho khách hàng CIF-889977 không?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-889977"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phạm Hồng Nhung (CIF: CIF-889977) · Phân hạng: STANDARD · KYC: VERIFIED · Xếp hạng rủi ro: LOW.\n\nTop 3 Offer tư vấn cho KH Phạm Hồng Nhung (STANDARD): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.\n\nChân dung KH Phạm Hồng Nhung (STANDARD): Nhóm 'Khách hàng cao cấp ưa chuộng tiện ích đặc quyền', gắn bó 18 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: THẬN TRỌNG & BẢO TOÀN VỐN.",
+  "latencyMs" : 1493,
+  "success" : true
+}, {
+  "id" : 51,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Gợi ý giải pháp bán chéo (cross-sell) tối ưu cho CIF-123678",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-123678"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Top 3 Offer tư vấn cho KH Phạm Thế Vinh (STANDARD): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.\n\nChân dung KH Phạm Thế Vinh (STANDARD): Nhóm 'Nhà đầu tư tích lũy & Tiết kiệm thông minh', gắn bó 17 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: THẬN TRỌNG & BẢO TOÀN VỐN.\n\nKhách hàng Phạm Thế Vinh (CIF: CIF-123678) · Phân hạng: STANDARD · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.",
+  "latencyMs" : 2708,
+  "success" : true
+}, {
+  "id" : 52,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Khách hàng CIF-778899 nên tư vấn sản phẩm gì hôm nay?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-778899"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.accounts.summary", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chân dung KH Dương Thanh Hằng (DIAMOND_VIP): Nhóm 'Nhà đầu tư tích lũy & Tiết kiệm thông minh', gắn bó 17 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nTop 3 Offer tư vấn cho KH Dương Thanh Hằng (DIAMOND_VIP): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.\n\nKhách hàng Dương Thanh Hằng (CIF: CIF-778899) · Phân hạng: DIAMOND_VIP · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.\n\nKhách hàng Dương Thanh Hằng (DIAMOND_VIP) sở hữu 3 tài khoản thanh toán (tổng 315 tr VND) và 1 sổ tiết kiệm (1,4 tỷ VND).",
+  "latencyMs" : 2759,
+  "success" : true
+}, {
+  "id" : 53,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Tư vấn gói bảo hiểm liên kết và thẻ tín dụng cho CIF-445566",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-445566"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.credit.score.check", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Trần Hữu Phước (CIF: CIF-445566) · Phân hạng: STANDARD · KYC: VERIFIED · Xếp hạng rủi ro: LOW.\n\nChân dung KH Trần Hữu Phước (STANDARD): Nhóm 'Doanh nhân / Chủ hộ kinh doanh vừa và nhỏ', gắn bó 76 tháng, kênh ưa chuộng: Mobile Banking (85%), khẩu vị: THẬN TRỌNG & BẢO TOÀN VỐN.\n\nTop 3 Offer tư vấn cho KH Trần Hữu Phước (STANDARD): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.\n\nKhách hàng Trần Hữu Phước có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.\n\nTín dụng KH Trần Hữu Phước: Điểm tín nhiệm 814/850 (AAA (Xuất sắc)), CIC: Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu), Hạn mức vay phê duyệt trước: 50 tr VND.",
+  "latencyMs" : 1873,
+  "success" : true
+}, {
+  "id" : 54,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Top 3 offer phù hợp nhất cho khách hàng VIP CIF-990011",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-990011"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Top 3 Offer tư vấn cho KH Nguyễn Hoàng Long (GOLD): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.",
+  "latencyMs" : 1433,
+  "success" : true
+}, {
+  "id" : 55,
+  "category" : "Tư vấn NBO",
+  "prompt" : "Khuyến nghị sản phẩm tài chính sinh lời cho CIF-223344",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-223344"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:recommendation.nbo.products", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.persona.analytics", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Top 3 Offer tư vấn cho KH Phan Thùy Dung (DIAMOND_VIP): 1) Thẻ Signature Cashback 10% · 2) Tiết kiệm Đắc Lộc 6.2% · 3) Thấu chi miễn lãi 15 ngày.\n\nChân dung KH Phan Thùy Dung (DIAMOND_VIP): Nhóm 'Khách hàng cao cấp ưa chuộng tiện ích đặc quyền', gắn bó 23 tháng, kênh ưa chuộng: Quầy giao dịch & Thẻ (60%), khẩu vị: TĂNG TRƯỞNG & ĐẦU TƯ.\n\nKhách hàng Phan Thùy Dung (CIF: CIF-223344) · Phân hạng: DIAMOND_VIP · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.",
+  "latencyMs" : 2086,
+  "success" : true
+}, {
+  "id" : 56,
+  "category" : "Tiết kiệm",
+  "prompt" : "Khách muốn gửi 200 triệu kỳ hạn 6 tháng thì tính lãi bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 200000000,
+    "termMonths" : 6
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 200 tr VND kỳ hạn 6 tháng (Lãi suất 5.6%/năm) ➔ Tiền lãi dự kiến: 5,6 tr VND (Tổng nhận khi đáo hạn: 205,6 tr VND).",
+  "latencyMs" : 1561,
+  "success" : true
+}, {
+  "id" : 57,
+  "category" : "Tiết kiệm",
+  "prompt" : "Gửi 500 triệu 12 tháng thì lãi được bao nhiêu tiền?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 500000000,
+    "termMonths" : 12
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 500 tr VND kỳ hạn 12 tháng (Lãi suất 6.0%/năm) ➔ Tiền lãi dự kiến: 30 tr VND (Tổng nhận khi đáo hạn: 530 tr VND).",
+  "latencyMs" : 1181,
+  "success" : true
+}, {
+  "id" : 58,
+  "category" : "Tiết kiệm",
+  "prompt" : "Tính lãi giúp khách gửi 1 tỷ kỳ hạn 24 tháng",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 1000000000,
+    "termMonths" : 24
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 1 tỷ VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 126 tr VND (Tổng nhận khi đáo hạn: 1,1 tỷ VND).",
+  "latencyMs" : 1302,
+  "success" : true
+}, {
+  "id" : 59,
+  "category" : "Tiết kiệm",
+  "prompt" : "Tư vấn phương án tiết kiệm 50 triệu kỳ hạn 3 tháng",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 50000000,
+    "termMonths" : 3
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 50 tr VND kỳ hạn 3 tháng (Lãi suất 4.2%/năm) ➔ Tiền lãi dự kiến: 525,000 VND (Tổng nhận khi đáo hạn: 50,5 tr VND).",
+  "latencyMs" : 1582,
+  "success" : true
+}, {
+  "id" : 60,
+  "category" : "Tiết kiệm",
+  "prompt" : "Gửi 100 tr trong 6 tháng thì tổng nhận khi đáo hạn là bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 100000000,
+    "termMonths" : 6
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 100 tr VND kỳ hạn 6 tháng (Lãi suất 5.6%/năm) ➔ Tiền lãi dự kiến: 2,8 tr VND (Tổng nhận khi đáo hạn: 102,8 tr VND).",
+  "latencyMs" : 2469,
+  "success" : true
+}, {
+  "id" : 61,
+  "category" : "Tiết kiệm",
+  "prompt" : "Tối ưu lãi cho khoản tiền 300 triệu nên gửi kỳ hạn nào tốt nhất?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 300000000,
+    "termMonths" : 24
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 300 tr VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 37,8 tr VND (Tổng nhận khi đáo hạn: 337,8 tr VND).\n\nGửi 300 tr VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 37,8 tr VND (Tổng nhận khi đáo hạn: 337,8 tr VND).\n\nGửi 300 tr VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 37,8 tr VND (Tổng nhận khi đáo hạn: 337,8 tr VND).\n\nGửi 300 tr VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 37,8 tr VND (Tổng nhận khi đáo hạn: 337,8 tr VND).\n\nGửi 300 tr VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 37,8 tr VND (Tổng nhận khi đáo hạn: 337,8 tr VND).",
+  "latencyMs" : 2598,
+  "success" : true
+}, {
+  "id" : 62,
+  "category" : "Tiết kiệm",
+  "prompt" : "Tính lãi suất tiết kiệm 2 tỷ kỳ hạn 12 tháng",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 2000000000,
+    "termMonths" : 12
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 2 tỷ VND kỳ hạn 12 tháng (Lãi suất 6.0%/năm) ➔ Tiền lãi dự kiến: 120 tr VND (Tổng nhận khi đáo hạn: 2,1 tỷ VND).",
+  "latencyMs" : 1341,
+  "success" : true
+}, {
+  "id" : 63,
+  "category" : "Tiết kiệm",
+  "prompt" : "So sánh lãi suất khi gửi 500 tr kỳ hạn 3 tháng vs 6 tháng vs 12 tháng",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 500000000,
+    "termMonths" : 12
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 500 tr VND kỳ hạn 12 tháng (Lãi suất 6.0%/năm) ➔ Tiền lãi dự kiến: 30 tr VND (Tổng nhận khi đáo hạn: 530 tr VND).\n\nGửi 500 tr VND kỳ hạn 12 tháng (Lãi suất 6.0%/năm) ➔ Tiền lãi dự kiến: 30 tr VND (Tổng nhận khi đáo hạn: 530 tr VND).\n\nGửi 500 tr VND kỳ hạn 12 tháng (Lãi suất 6.0%/năm) ➔ Tiền lãi dự kiến: 30 tr VND (Tổng nhận khi đáo hạn: 530 tr VND).",
+  "latencyMs" : 1879,
+  "success" : true
+}, {
+  "id" : 64,
+  "category" : "Tiết kiệm",
+  "prompt" : "Khách gửi 80 triệu 1 tháng thì nhận bao nhiêu tiền lãi?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 80000000,
+    "termMonths" : 1
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 80 tr VND kỳ hạn 1 tháng (Lãi suất 3.2%/năm) ➔ Tiền lãi dự kiến: 213,333 VND (Tổng nhận khi đáo hạn: 80,2 tr VND).",
+  "latencyMs" : 1412,
+  "success" : true
+}, {
+  "id" : 65,
+  "category" : "Tiết kiệm",
+  "prompt" : "Mô phỏng bảng tính tiền lãi định kỳ cho khoản gửi 1.5 tỷ",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "amount" : 1500000000,
+    "termMonths" : 24
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:savings.product.advisor", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Gửi 1,5 tỷ VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 189 tr VND (Tổng nhận khi đáo hạn: 1,7 tỷ VND).\n\nGửi 1,5 tỷ VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 189 tr VND (Tổng nhận khi đáo hạn: 1,7 tỷ VND).\n\nGửi 1,5 tỷ VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 189 tr VND (Tổng nhận khi đáo hạn: 1,7 tỷ VND).\n\nGửi 1,5 tỷ VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 189 tr VND (Tổng nhận khi đáo hạn: 1,7 tỷ VND).\n\nGửi 1,5 tỷ VND kỳ hạn 24 tháng (Lãi suất 6.3%/năm) ➔ Tiền lãi dự kiến: 189 tr VND (Tổng nhận khi đáo hạn: 1,7 tỷ VND).",
+  "latencyMs" : 2402,
+  "success" : true
+}, {
+  "id" : 66,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Kiểm tra danh sách thẻ và trạng thái thẻ của CIF-0001842",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-0001842"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Nguyễn Minh Anh có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 1171,
+  "success" : true
+}, {
+  "id" : 67,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Khách hàng CIF-992211 yêu cầu khóa thẻ tín dụng Visa khẩn cấp",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-992211"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phạm Hồng Nhung có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 1433,
+  "success" : true
+}, {
+  "id" : 68,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Tra cứu hạn mức thẻ tín dụng và thẻ ghi nợ của CIF-334455",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-334455"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Trần Minh Anh có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 1138,
+  "success" : true
+}, {
+  "id" : 69,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Đổi mã PIN và kiểm tra thẻ Napas cho khách hàng CIF-556677",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-556677"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phạm Kim Ngân có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.\n\nKhách hàng Phạm Kim Ngân (CIF: CIF-556677) · Phân hạng: PRIORITY · KYC: VERIFIED · Xếp hạng rủi ro: LOW.",
+  "latencyMs" : 2107,
+  "success" : true
+}, {
+  "id" : 70,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Mở khóa tính năng thanh toán online E-commerce cho thẻ Visa của CIF-889977",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-889977"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phạm Hồng Nhung có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 1058,
+  "success" : true
+}, {
+  "id" : 71,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Tra cứu danh sách thẻ ATM và thẻ tín dụng của CIF-123678",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-123678"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phạm Thế Vinh có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 1119,
+  "success" : true
+}, {
+  "id" : 72,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Kiểm tra hạn mức quẹt POS của thẻ Platinum CIF-778899",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-778899"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Dương Thanh Hằng có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 3951,
+  "success" : true
+}, {
+  "id" : 73,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Khách hàng CIF-445566 muốn kiểm tra tình trạng hoạt động của thẻ",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-445566"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Trần Hữu Phước có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 1300,
+  "success" : true
+}, {
+  "id" : 74,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Xem thông tin thẻ tín dụng Master và hạn mức khả dụng của CIF-990011",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-990011"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:customer.profile.read", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Nguyễn Hoàng Long có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.\n\nKhách hàng Nguyễn Hoàng Long (CIF: CIF-990011) · Phân hạng: GOLD · KYC: VERIFIED · Xếp hạng rủi ro: MEDIUM.",
+  "latencyMs" : 2693,
+  "success" : true
+}, {
+  "id" : 75,
+  "category" : "Dịch vụ thẻ",
+  "prompt" : "Tra cứu trạng thái thẻ ghi nợ nội địa Napas của CIF-223344",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-223344"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:card.service.manage", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Khách hàng Phan Thùy Dung có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+  "latencyMs" : 1099,
+  "success" : true
+}, {
+  "id" : 76,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Trích lục lịch sử giao dịch sao kê của tài khoản 3456789",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "3456789"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:statement.transaction.history", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Sao kê gần nhất tài khoản 3456789: 4 giao dịch (Tổng tiền vào: +52,25 tr VND, Tổng chi tiêu: -6,85 tr VND, Số dư hiện tại: 250 tr VND).",
+  "latencyMs" : 992,
+  "success" : true
+}, {
+  "id" : 77,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "In sao kê 30 ngày gần nhất của tài khoản 012345678901",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "012345678901"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 012345678901: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 42.500.000 VND).",
+  "latencyMs" : 1123,
+  "success" : true
+}, {
+  "id" : 78,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Kiểm tra lịch sử biến động số dư của tài khoản 987654321",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "987654321"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 987654321: Chủ tài khoản Nguyễn Hoàng Long (Trạng thái: ACTIVE, Số dư khả dụng: 82.024.373 VND).",
+  "latencyMs" : 1617,
+  "success" : true
+}, {
+  "id" : 79,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Xem các giao dịch tiền vào tiền ra gần đây của STK 1020304050",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "1020304050"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 1020304050: Chủ tài khoản Trần Thanh Tùng (Trạng thái: ACTIVE, Số dư khả dụng: 149.991.761 VND).",
+  "latencyMs" : 1671,
+  "success" : true
+}, {
+  "id" : 80,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Trích lục sao kê dòng tiền của CIF-0001842",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "customerRef" : "CIF-0001842"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:statement.transaction.history", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Sao kê gần nhất tài khoản 3456789: 4 giao dịch (Tổng tiền vào: +52,25 tr VND, Tổng chi tiêu: -6,85 tr VND, Số dư hiện tại: 250 tr VND).",
+  "latencyMs" : 867,
+  "success" : true
+}, {
+  "id" : 81,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Tra cứu lịch sử nhận tiền lương và chi tiêu của tài khoản 3456789",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "3456789"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 3456789: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 250.000.000 VND).",
+  "latencyMs" : 1309,
+  "success" : true
+}, {
+  "id" : 82,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "In lịch sử giao dịch 90 ngày của số tài khoản 001100223344",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "001100223344"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 001100223344: Chủ tài khoản Lê Quỳnh Nga (Trạng thái: ACTIVE, Số dư khả dụng: 271.758.784 VND).",
+  "latencyMs" : 995,
+  "success" : true
+}, {
+  "id" : 83,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Kiểm tra giao dịch chuyển tiền gần nhất trên tài khoản 1234567899",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "1234567899"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:statement.transaction.history", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Sao kê gần nhất tài khoản 1234567899: 4 giao dịch (Tổng tiền vào: +52,25 tr VND, Tổng chi tiêu: -6,85 tr VND, Số dư hiện tại: 250 tr VND).",
+  "latencyMs" : 1481,
+  "success" : true
+}, {
+  "id" : 84,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Sao kê chi tiết các khoản thu chi của STK 060123456789",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "060123456789"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:statement.transaction.history", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Sao kê gần nhất tài khoản 060123456789: 4 giao dịch (Tổng tiền vào: +52,25 tr VND, Tổng chi tiêu: -6,85 tr VND, Số dư hiện tại: 250 tr VND).",
+  "latencyMs" : 1020,
+  "success" : true
+}, {
+  "id" : 85,
+  "category" : "Sao kê giao dịch",
+  "prompt" : "Xem danh sách 5 giao dịch gần đây nhất của tài khoản 88889999",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "accountNumber" : "88889999"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:account.resolve.by_number", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tài khoản 88889999: Chủ tài khoản Đinh Gia Huy (Trạng thái: ACTIVE, Số dư khả dụng: 219.566.144 VND).",
+  "latencyMs" : 1553,
+  "success" : true
+}, {
+  "id" : 86,
+  "category" : "Tỷ giá",
+  "prompt" : "Tỷ giá USD hôm nay mua vào bán ra bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "currency" : "USD"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:fx.rate.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tỷ giá USD: Mua vào 25,450 VND, Bán ra 25,480 VND",
+  "latencyMs" : 2114,
+  "success" : true
+}, {
+  "id" : 87,
+  "category" : "Tỷ giá",
+  "prompt" : "Tỷ giá 2000 EUR hôm nay đổi ra bao nhiêu VND?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "currency" : "EUR",
+    "amount" : 2000
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:fx.rate.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "2000 EUR = 54,400,000 VND (mua) / 55,000,000 VND (bán)",
+  "latencyMs" : 1388,
+  "success" : true
+}, {
+  "id" : 88,
+  "category" : "Tỷ giá",
+  "prompt" : "Xem tỷ giá đồng Yên Nhật JPY hôm nay",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "currency" : "JPY"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:fx.rate.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tỷ giá JPY: Mua vào 166 VND, Bán ra 168 VND",
+  "latencyMs" : 1030,
+  "success" : true
+}, {
+  "id" : 89,
+  "category" : "Tỷ giá",
+  "prompt" : "Đổi 5000 SGD sang tiền Việt được bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "currency" : "SGD",
+    "amount" : 5000
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:fx.rate.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "5000 SGD = 95,500,000 VND (mua) / 97,000,000 VND (bán)",
+  "latencyMs" : 1493,
+  "success" : true
+}, {
+  "id" : 90,
+  "category" : "Tỷ giá",
+  "prompt" : "Tỷ giá Bảng Anh GBP tại quầy hôm nay thế nào?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "currency" : "GBP"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:fx.rate.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tỷ giá GBP: Mua vào 32,800 VND, Bán ra 33,200 VND",
+  "latencyMs" : 1262,
+  "success" : true
+}, {
+  "id" : 91,
+  "category" : "Mạng lưới",
+  "prompt" : "Địa chỉ và hotline chi nhánh tại Hà Nội ở đâu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "city" : "Hà Nội"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:branch.directory.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tìm thấy 2 điểm giao dịch phù hợp.",
+  "latencyMs" : 981,
+  "success" : true
+}, {
+  "id" : 92,
+  "category" : "Mạng lưới",
+  "prompt" : "Tìm phòng giao dịch tại TP Hồ Chí Minh",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "city" : "TP. Hồ Chí Minh"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:branch.directory.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tìm thấy 1 điểm giao dịch phù hợp.",
+  "latencyMs" : 859,
+  "success" : true
+}, {
+  "id" : 93,
+  "category" : "Mạng lưới",
+  "prompt" : "Chi nhánh Đà Nẵng mở cửa đến mấy giờ và hotline là gì?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "city" : "Đà Nẵng"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:branch.directory.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tìm thấy 1 điểm giao dịch phù hợp.",
+  "latencyMs" : 1386,
+  "success" : true
+}, {
+  "id" : 94,
+  "category" : "Mạng lưới",
+  "prompt" : "Địa chỉ trụ sở chính ngân hàng ở đâu?",
+  "intentType" : "POLICY_ASSISTANCE",
+  "workflow" : "policy_assistance",
+  "status" : "ASSISTANCE_READY",
+  "entities" : { },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi policy_agent", "policy_agent cập nhật state", "Hoàn thành hỗ trợ nghiệp vụ" ],
+  "responseSummary" : "Chuyển khoản tại quầy yêu cầu khách hàng đã xác thực, kiểm tra thông tin người thụ hưởng và xác nhận phí trước khi gửi core.",
+  "latencyMs" : 2464,
+  "success" : true
+}, {
+  "id" : 95,
+  "category" : "Mạng lưới",
+  "prompt" : "Hotline tổng đài chăm sóc khách hàng và điểm giao dịch gần nhất",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "city" : "Đà Nẵng"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:branch.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:branch.directory.lookup", "dynamic_tool_agent cập nhật state", "Orchestrator gọi dynamic_tool_agent:branch.directory.lookup", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Tìm thấy 1 điểm giao dịch phù hợp.\n\nTìm thấy 1 điểm giao dịch phù hợp.\n\nTìm thấy 1 điểm giao dịch phù hợp.",
+  "latencyMs" : 2159,
+  "success" : true
+}, {
+  "id" : 96,
+  "category" : "Quy trình",
+  "prompt" : "Quy trình nộp tiền mặt trên 400 triệu cần những giấy tờ gì?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "query" : "quy trình nộp tiền mặt trên 400 triệu giấy tờ cần thiết"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:knowledge.policy.search", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "GDV phải đối chiếu số tài khoản, chủ tài khoản, số tiền và chứng từ trước khi xác nhận giao dịch tiền mặt.",
+  "latencyMs" : 1786,
+  "success" : true
+}, {
+  "id" : 97,
+  "category" : "Quy trình",
+  "prompt" : "Hạn mức chuyển khoản tối đa tại quầy trong một ngày là bao nhiêu?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "query" : "hạn mức chuyển khoản tối đa tại quầy trong một ngày"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:knowledge.policy.search", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chuyển khoản tại quầy yêu cầu khách hàng đã xác thực, kiểm tra thông tin người thụ hưởng và xác nhận phí trước khi gửi core.",
+  "latencyMs" : 1562,
+  "success" : true
+}, {
+  "id" : 98,
+  "category" : "Quy trình",
+  "prompt" : "Biểu phí chuyển tiền quốc tế và liên ngân hàng như thế nào?",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "query" : "biểu phí chuyển tiền quốc tế và liên ngân hàng"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:knowledge.policy.search", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chuyển khoản tại quầy yêu cầu khách hàng đã xác thực, kiểm tra thông tin người thụ hưởng và xác nhận phí trước khi gửi core.",
+  "latencyMs" : 1515,
+  "success" : true
+}, {
+  "id" : 99,
+  "category" : "Quy trình",
+  "prompt" : "Hướng dẫn thủ tục mở tài khoản số đẹp cho khách hàng VIP",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "query" : "thủ tục mở tài khoản số đẹp cho khách hàng VIP"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:knowledge.policy.search", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chuyển khoản tại quầy yêu cầu khách hàng đã xác thực, kiểm tra thông tin người thụ hưởng và xác nhận phí trước khi gửi core.",
+  "latencyMs" : 1458,
+  "success" : true
+}, {
+  "id" : 100,
+  "category" : "Quy trình",
+  "prompt" : "Điều kiện cấp thẻ tín dụng không cần chứng minh thu nhập",
+  "intentType" : "DYNAMIC_AUTONOMOUS_TASK",
+  "workflow" : "dynamic_autonomous",
+  "status" : "ASSISTANCE_READY",
+  "entities" : {
+    "query" : "điều kiện cấp thẻ tín dụng không cần chứng minh thu nhập"
+  },
+  "toolsCalled" : [ "Mở phiên B.Smart", "Teller cung cấp yêu cầu", "Intent Agent xác định ý định", "Autonomous ReAct Planner lập kế hoạch", "Orchestrator gọi dynamic_tool_agent:knowledge.policy.search", "dynamic_tool_agent cập nhật state", "Dynamic ReAct hoàn thành" ],
+  "responseSummary" : "Chuyển khoản tại quầy yêu cầu khách hàng đã xác thực, kiểm tra thông tin người thụ hưởng và xác nhận phí trước khi gửi core.",
+  "latencyMs" : 1442,
+  "success" : true
+} ]

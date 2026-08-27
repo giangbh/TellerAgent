@@ -33,8 +33,8 @@ public class AgentRuntime {
     public void setBudget(Budget budget) { this.budget = budget; }
 
     public static class Budget {
-        private int maxDelegations = 6;
-        private int maxToolCalls = 16;
+        private int maxDelegations = 12;
+        private int maxToolCalls = 32;
         private int delegationsUsed = 0;
         private int toolCallsUsed = 0;
 
