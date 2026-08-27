@@ -42,8 +42,20 @@ Hệ thống Trợ lý AI Quầy Giao Dịch Ngân Hàng (**Smart Counter AI Cop
    - Quản lý State Machine theo mô hình Workflow as Code, cơ chế Maker-Checker 4 mắt và Event Sourcing bất biến.
    - Cấp mã `traceId` duy nhất cho mỗi giao dịch và duy trì sổ cái chống trùng lặp (**Idempotency Ledger**) trên SQLite.
 
-6. **Frontend Smart Counter Hub (React 19 + TypeScript + Vite)**:
-   - Giao diện Dark Mode & Glassmorphism chuyên nghiệp, hiển thị Live Draft nghiệp vụ, Audit Timeline và tích hợp **MCP Explorer Modal**.
+6. **Hệ Thống Giám Định Độc Lập LLM-as-a-Judge (Independent AI Quality Auditor)**:
+   - Module `LlmJudgeService` phản biện và chấm điểm tự động phản hồi của AI Copilot theo 4 trục:
+     - 🎯 **Hallucination Score** (Trọng số 45%): Đối soát 100% số liệu với Ground Truth Data từ MCP Tools/Core.
+     - 🛡️ **Compliance & RBAC Score** (Trọng số 25%): Bảo mật dữ liệu nhạy cảm PII, Maker-Checker.
+     - 🤝 **Politeness Score** (Trọng số 20%): Phong cách ngân hàng chuyên nghiệp, định dạng tiền tệ VND.
+     - ⚡ **Latency SLA Score** (Trọng số 10%): Thời gian phản hồi đạt chuẩn giao dịch quầy.
+   - Trả về phán quyết `PASS` / `WARNING` / `FAIL` và bản nhận xét (Critique) giải trình chi tiết.
+
+7. **Hệ Thống Quan Sát Phân Tán OpenTelemetry Distributed Tracing (APM)**:
+   - Đo lường và trực quan hóa chi tiết từng Span (`intent_detection`, `react_planning`, `mcp_tool:*`, `llm_reasoning_synthesis`).
+   - Cung cấp biểu đồ **Waterfall Timeline Spans** ngay trong modal giao diện GDV.
+
+8. **Frontend Smart Counter Hub (React 19 + TypeScript + Vite)**:
+   - Giao diện Dark Mode & Glassmorphism chuyên nghiệp, hiển thị Live Draft nghiệp vụ, Audit Timeline, Thinking Accordion, tích hợp **MCP Explorer Modal** và **Observability Modal (LLM Judge & APM Trace)**.
 
 ---
 

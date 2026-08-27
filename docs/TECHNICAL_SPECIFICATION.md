@@ -76,6 +76,81 @@
 - **Path:** `/api/sessions/{sessionId}/execute`
 - **Headers:** `Idempotency-Key: uuid-v4`
 
+### 1.5. Giám Định Phản Hồi Bằng LLM-as-a-Judge (Judge Evaluation)
+- **Method:** `POST`
+- **Path:** `/api/evaluations/judge`
+- **Request Body:**
+  ```json
+  {
+    "sessionId": "31f2c79a-66d5-443e-844d-44998b46d605",
+    "traceId": "trace-70b65936-b0b",
+    "userPrompt": "Trích lục sao kê của tài khoản 3456789 và cho biết giao dịch lớn nhất",
+    "assistantResponse": "Dựa trên dữ liệu từ hệ thống...",
+    "latencyMs": 1850
+  }
+  ```
+- **Response Structure (HTTP 200):**
+  ```json
+  {
+    "evaluationId": "eval-ac23916e-c",
+    "sessionId": "31f2c79a-66d5-443e-844d-44998b46d605",
+    "traceId": "trace-70b65936-b0b",
+    "overallScore": 8.9,
+    "hallucinationScore": 10.0,
+    "politenessScore": 8.0,
+    "complianceScore": 9.0,
+    "latencyScore": 5.0,
+    "latencyMs": 27335,
+    "verdict": "PASS",
+    "critique": "Phản hồi trích lục sao kê chính xác tuyệt đối với dữ liệu gốc: đúng số tài khoản, số giao dịch, tổng tiền vào/ra, dòng tiền ròng và giao dịch lớn nhất...",
+    "evaluatedAt": "2026-08-27T10:19:16.511Z",
+    "judgeModel": "deepseek-chat (LLM-as-a-Judge)"
+  }
+  ```
+
+### 1.6. Danh Sách Dấu Vết Phân Tán (OpenTelemetry Traces)
+- **Method:** `GET`
+- **Path:** `/api/observability/traces?limit=20`
+- **Response Structure (HTTP 200):**
+  ```json
+  [
+    {
+      "traceId": "trace-70b65936-b0b",
+      "sessionId": "31f2c79a-66d5-443e-844d-44998b46d605",
+      "rootOperation": "process_message",
+      "startTimeMs": 1787825232311,
+      "endTimeMs": 1787825240267,
+      "totalDurationMs": 7956,
+      "status": "OK",
+      "spans": [
+        {
+          "spanId": "span-d8e62fa7",
+          "name": "intent_detection",
+          "durationMs": 1834,
+          "status": "OK",
+          "attributes": { "detectedIntent": "DYNAMIC_AUTONOMOUS_TASK" }
+        },
+        {
+          "spanId": "span-4907af06",
+          "name": "mcp_tool:statement.transaction.history",
+          "durationMs": 12,
+          "status": "OK"
+        },
+        {
+          "spanId": "span-a4c1482b",
+          "name": "llm_reasoning_synthesis",
+          "durationMs": 6109,
+          "status": "OK"
+        }
+      ]
+    }
+  ]
+  ```
+
+### 1.7. Chi Tiết Một Dấu Vết Phân Tán (Trace Detail)
+- **Method:** `GET`
+- **Path:** `/api/observability/traces/{traceId}`
+
 ---
 
 ## 2. Đặc Tả Giao Thức Model Context Protocol (MCP JSON-RPC 2.0)
