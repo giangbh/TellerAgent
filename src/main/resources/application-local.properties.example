@@ -1,0 +1,17 @@
+# ====================================================================
+# B.Smart Teller Agent - Local Configuration Example
+# Sao chép file này thành application-local.properties và điền API Key
+# File application-local.properties đã được thêm vào .gitignore
+# ====================================================================
+
+# Bật tích hợp DeepSeek AI (true / false)
+deepseek.api.enabled=true
+
+# Điền DeepSeek API Key của bạn tại đây (bắt đầu bằng sk-...)
+deepseek.api.key=sk-your-deepseek-api-key-here
+
+# Tùy chọn: DeepSeek Endpoint & Model
+deepseek.api.base-url=https://api.deepseek.com/v1
+deepseek.api.model=deepseek-chat
+deepseek.api.temperature=0.1
+deepseek.api.timeout-seconds=15

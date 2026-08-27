@@ -9,12 +9,15 @@ import com.dnse.teller.model.Session;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class ReasoningEngine {
     private final McpToolRegistry toolRegistry;
+    private final DeepSeekClient deepSeekClient;
+    private final Map<String, DeepSeekClient.DeepSeekPlanResult> deepSeekPlanCache = new ConcurrentHashMap<>();
 
     private static final List<String[]> BANK_ALIASES = List.of(
         new String[]{"vietcombank", "VCB"},
@@ -37,14 +40,25 @@ public class ReasoningEngine {
     private static final Pattern ACCOUNT_PAT = Pattern.compile("\\b\\d{6,14}\\b");
     private static final Pattern NAME_PAT = Pattern.compile("(?:cho|tên|người nhận)\\s+([A-Za-zÀ-ỹĐđ\\s]{3,40}?)(?=\\s+(?:tại|ở|ngân hàng|số tài khoản|stk|tk)|[,.;]|$)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
-    public ReasoningEngine(McpToolRegistry toolRegistry) {
+    public ReasoningEngine(McpToolRegistry toolRegistry, DeepSeekClient deepSeekClient) {
         this.toolRegistry = toolRegistry;
+        this.deepSeekClient = deepSeekClient;
     }
 
     public Intent detectIntent(String text, Intent currentIntent) {
         String lower = text != null ? text.toLowerCase() : "";
 
-        // 1. Dynamic FX Rate / Currency Inquiry
+        // 1. DeepSeek LLM / Function Calling (if configured and enabled)
+        if (deepSeekClient.isConfiguredAndEnabled()) {
+            Optional<DeepSeekClient.DeepSeekPlanResult> aiResult = deepSeekClient.reasonAndPlan(text, currentIntent != null ? currentIntent.getEntities() : Map.of());
+            if (aiResult.isPresent()) {
+                DeepSeekClient.DeepSeekPlanResult res = aiResult.get();
+                deepSeekPlanCache.put(text, res);
+                return res.getIntent();
+            }
+        }
+
+        // 2. Fallback: Dynamic FX Rate / Currency Inquiry
         if (FX_PAT.matcher(lower).find()) {
             Map<String, Object> entities = new LinkedHashMap<>();
             Long amount = parseAmount(text);
@@ -62,7 +76,7 @@ public class ReasoningEngine {
             return fxIntent;
         }
 
-        // 2. Dynamic Branch / Location Inquiry
+        // 3. Fallback: Dynamic Branch / Location Inquiry
         if (BRANCH_PAT.matcher(lower).find()) {
             Map<String, Object> entities = new LinkedHashMap<>();
             String city = "Hà Nội";
@@ -75,21 +89,21 @@ public class ReasoningEngine {
             return branchIntent;
         }
 
-        // 3. Dynamic Customer Portfolio & Accounts Summary Inquiry
+        // 4. Fallback: Dynamic Customer Portfolio & Accounts Summary Inquiry
         if (SUMMARY_PAT.matcher(lower).find()) {
             Intent summaryIntent = new Intent("DYNAMIC_ACCOUNT_SUMMARY", "dynamic_autonomous", 0.98, Map.of());
             summaryIntent.setQuery(text);
             return summaryIntent;
         }
 
-        // 4. Policy Assistance
+        // 5. Fallback: Policy Assistance
         if (POLICY_QUERY_PAT.matcher(lower).find()) {
             Intent policyIntent = new Intent("POLICY_ASSISTANCE", "policy_assistance", 0.95, Map.of());
             policyIntent.setQuery(text);
             return policyIntent;
         }
 
-        // 5. Cash Deposit & Withdrawal
+        // 6. Fallback: Cash Deposit & Withdrawal
         if (CASH_DEPOSIT_PAT.matcher(lower).find()) {
             return new Intent("CASH_DEPOSIT", "cash_deposit", 0.97, extractCashEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
@@ -97,12 +111,12 @@ public class ReasoningEngine {
             return new Intent("CASH_WITHDRAWAL", "cash_withdrawal", 0.97, extractCashEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
 
-        // 6. Domestic Transfer
+        // 7. Fallback: Domestic Transfer
         if (TRANSFER_PAT.matcher(lower).find()) {
             return new Intent("DOMESTIC_TRANSFER", "domestic_transfer", 0.94, extractTransferEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
 
-        // 7. Resume previous state if present
+        // 8. Resume previous state if present
         if (currentIntent != null && "DOMESTIC_TRANSFER".equals(currentIntent.getType())) {
             Intent updated = new Intent(currentIntent.getType(), currentIntent.getWorkflow(), 0.99, extractTransferEntities(text, currentIntent.getEntities()));
             updated.setQuery(currentIntent.getQuery());
@@ -114,7 +128,7 @@ public class ReasoningEngine {
             return updated;
         }
 
-        // 8. Default Dynamic Tool Discovery for any unclassified prompt
+        // 9. Default Dynamic Tool Discovery for any unclassified prompt
         List<String> discoveredTools = discoverTools(text);
         Intent dynamicIntent = new Intent("DYNAMIC_AUTONOMOUS_TASK", "dynamic_autonomous", 0.88, extractTransferEntities(text, Map.of()));
         dynamicIntent.setQuery(text);
@@ -123,6 +137,14 @@ public class ReasoningEngine {
     }
 
     public Plan proposePlan(Session session) {
+        String query = session.getIntent() != null ? session.getIntent().getQuery() : "";
+        if (query != null && deepSeekPlanCache.containsKey(query)) {
+            DeepSeekClient.DeepSeekPlanResult cached = deepSeekPlanCache.remove(query);
+            if (cached != null && cached.getPlan() != null) {
+                return cached.getPlan();
+            }
+        }
+
         String intentType = session.getIntent() != null ? session.getIntent().getType() : "DYNAMIC_AUTONOMOUS_TASK";
 
         if ("DYNAMIC_FX_LOOKUP".equals(intentType)) {
@@ -249,54 +271,80 @@ public class ReasoningEngine {
             return Math.round(base * mult);
         }
 
-        Pattern directAmount = Pattern.compile("(?:số tiền|chuyển|rút|nộp|giá)\\s+(\\d{2,})\\b");
-        Matcher m2 = directAmount.matcher(normalized);
+        // Formatted amount (e.g. 50.000.000 or 25.000.000)
+        Pattern amountFormatted = Pattern.compile("\\b(\\d{1,3}(?:\\.\\d{3})+)\\b");
+        Matcher m2 = amountFormatted.matcher(normalized);
         if (m2.find()) {
-            return Long.parseLong(m2.group(1));
+            String raw = m2.group(1).replace(".", "");
+            try {
+                return Long.parseLong(raw);
+            } catch (NumberFormatException ignored) {}
         }
         return null;
     }
 
-    private Map<String, Object> extractTransferEntities(String text, Map<String, Object> previous) {
-        Map<String, Object> entities = new LinkedHashMap<>(previous);
-        String lower = text != null ? text.toLowerCase() : "";
+    public String parseBank(String text) {
+        if (text == null) return null;
+        String lower = text.toLowerCase();
+        for (String[] alias : BANK_ALIASES) {
+            Pattern p = Pattern.compile("\\b" + Pattern.quote(alias[0]) + "\\b", Pattern.CASE_INSENSITIVE);
+            if (p.matcher(lower).find()) {
+                return alias[1];
+            }
+        }
+        return null;
+    }
+
+    public String parseAccount(String text) {
+        if (text == null) return null;
+        Matcher m = ACCOUNT_PAT.matcher(text);
+        if (m.find()) {
+            return m.group(0);
+        }
+        return null;
+    }
+
+    public String parseName(String text) {
+        if (text == null) return null;
+        Matcher m = NAME_PAT.matcher(text);
+        if (m.find()) {
+            String name = m.group(1).trim();
+            if (!name.equalsIgnoreCase("vietcombank") && !name.equalsIgnoreCase("vcb") && !name.equalsIgnoreCase("bidv")) {
+                return name;
+            }
+        }
+        return null;
+    }
+
+    public Map<String, Object> extractTransferEntities(String text, Map<String, Object> existing) {
+        Map<String, Object> entities = new LinkedHashMap<>(existing != null ? existing : Map.of());
 
         Long amount = parseAmount(text);
         if (amount != null) entities.put("amount", amount);
 
-        Matcher accMatcher = ACCOUNT_PAT.matcher(text != null ? text : "");
-        String lastAccount = null;
-        while (accMatcher.find()) {
-            lastAccount = accMatcher.group();
-        }
-        if (lastAccount != null) entities.put("beneficiaryAccount", lastAccount);
+        String bank = parseBank(text);
+        if (bank != null) entities.put("bankCode", bank);
 
-        for (String[] pair : BANK_ALIASES) {
-            if (lower.contains(pair[0])) {
-                entities.put("bankCode", pair[1]);
-                break;
-            }
-        }
+        String account = parseAccount(text);
+        if (account != null) entities.put("beneficiaryAccount", account);
 
-        Matcher nameMatcher = NAME_PAT.matcher(text != null ? text : "");
-        if (nameMatcher.find()) {
-            entities.put("beneficiaryName", nameMatcher.group(1).trim());
-        }
+        String name = parseName(text);
+        if (name != null) entities.put("beneficiaryName", name);
 
         return entities;
     }
 
-    private Map<String, Object> extractCashEntities(String text, Map<String, Object> previous) {
-        Map<String, Object> entities = new LinkedHashMap<>(previous);
+    public Map<String, Object> extractCashEntities(String text, Map<String, Object> existing) {
+        Map<String, Object> entities = new LinkedHashMap<>(existing != null ? existing : Map.of());
+
         Long amount = parseAmount(text);
         if (amount != null) entities.put("amount", amount);
 
-        Matcher accMatcher = ACCOUNT_PAT.matcher(text != null ? text : "");
-        String lastAccount = null;
-        while (accMatcher.find()) {
-            lastAccount = accMatcher.group();
-        }
-        if (lastAccount != null) entities.put("accountNumber", lastAccount);
+        String account = parseAccount(text);
+        if (account != null) entities.put("accountNumber", account);
+
+        String name = parseName(text);
+        if (name != null) entities.put("accountHolder", name);
 
         return entities;
     }

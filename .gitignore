@@ -16,6 +16,13 @@ data/*.db
 data/*.db-journal
 *.log
 
+# Secrets & Local Config (NEVER COMMIT)
+src/main/resources/application-local.properties
+src/main/resources/application-secrets.properties
+.env
+*.env
+local.properties
+
 # Knowledge Graph Generated
 graphify-out/
 
