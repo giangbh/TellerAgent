@@ -1,0 +1,33 @@
+# Maven Build
+target/
+*.class
+*.jar
+*.war
+
+# Node & Frontend Build
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+dist/
+
+# SQLite Databases & Logs
+data/*.db
+data/*.db-journal
+*.log
+
+# Knowledge Graph Generated
+graphify-out/
+
+# IDE & OS Files
+.DS_Store
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Temp & Artifacts
+scratch/
+tmp/

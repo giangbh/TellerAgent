@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B.Smart · Teller Agent POC</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">TA</div>
+      <div>
+        <strong>Smart Counter Hub</strong>
+        <span>Teller Agent · B.Smart</span>
+      </div>
+    </div>
+    <div class="topbar-meta">
+      <span class="pill mock">● MOCK ONLY</span>
+      <span class="pill" id="clock">--:--</span>
+      <button class="ghost-button" id="new-session">Phiên mới</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="left-rail">
+      <section class="panel identity-panel">
+        <p class="eyebrow">PHIÊN GIAO DỊCH</p>
+        <div class="session-code" id="session-code">Đang khởi tạo…</div>
+        <div class="meta-grid">
+          <span>Đơn vị</span><strong id="branch-id">—</strong>
+          <span>Quầy</span><strong id="counter-id">—</strong>
+          <span>Teller</span><strong id="teller-id">—</strong>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">KỊCH BẢN DEMO</p>
+            <h2>Chọn tình huống</h2>
+          </div>
+        </div>
+        <div id="scenario-list" class="scenario-list"></div>
+      </section>
+
+      <section class="panel compact">
+        <p class="eyebrow">BOUNDARY</p>
+        <ul class="boundary-list">
+          <li><span>AI</span> Lập plan, đọc dữ liệu, tạo draft</li>
+          <li><span>Teller</span> Kiểm tra và xác nhận</li>
+          <li><span>Control</span> Quyết định quyền posting</li>
+          <li><span>Core</span> Mock ghi sổ có idempotency</li>
+        </ul>
+      </section>
+    </aside>
+
+    <section class="center-stage">
+      <div class="customer-strip panel">
+        <div class="avatar">NA</div>
+        <div class="customer-primary">
+          <p class="eyebrow">KHÁCH HÀNG ĐANG PHỤC VỤ</p>
+          <h1 id="customer-name">Chưa tải hồ sơ</h1>
+          <div class="customer-tags" id="customer-tags"></div>
+        </div>
+        <div class="status-block">
+          <span>Workflow status</span>
+          <strong id="workflow-status">SESSION_OPEN</strong>
+        </div>
+      </div>
+
+      <section class="panel copilot-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">B.SMART</p>
+            <h2>Hội thoại nghiệp vụ</h2>
+          </div>
+          <span class="mode-badge">Mock structured planner</span>
+        </div>
+        <div class="messages" id="messages">
+          <div class="message assistant">
+            <div class="message-icon">AI</div>
+            <div><strong>B.Smart</strong><p>Hãy mô tả yêu cầu của khách hàng hoặc chọn một kịch bản demo.</p></div>
+          </div>
+        </div>
+        <form class="composer" id="message-form">
+          <textarea id="message-input" rows="2" placeholder="Ví dụ: Chuyển 50 triệu cho Nguyễn Văn An tại Vietcombank…"></textarea>
+          <button class="primary-button" type="submit" id="send-button">Phân tích yêu cầu</button>
+        </form>
+      </section>
+
+      <section class="panel transaction-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">TRANSACTION DRAFT</p>
+            <h2 id="draft-title">Bản nháp giao dịch</h2>
+          </div>
+          <span id="draft-validity" class="status-chip neutral">Chưa có dữ liệu</span>
+        </div>
+        <div id="screen-banner" class="screen-banner hidden">
+          <span class="screen-icon">↗</span>
+          <div><span>B.Smart đã điều hướng GDV tới</span><strong id="screen-title">—</strong></div>
+          <code id="screen-code">—</code>
+        </div>
+        <div id="draft-empty" class="empty-state">Agent chưa tạo bản nháp.</div>
+        <div id="draft-content" class="draft-grid hidden"></div>
+        <div class="approval-row" id="transfer-approval-row">
+          <button class="approval-button" data-actor="customer">① Khách hàng xác nhận</button>
+          <button class="approval-button" data-actor="teller">② Teller xác nhận</button>
+          <button class="approval-button" data-actor="supervisor">③ Kiểm soát viên</button>
+          <button class="execute-button" id="execute-button">Gửi Core Mock</button>
+        </div>
+        <div class="cash-submit-row hidden" id="cash-submit-row">
+          <div class="verify-note"><strong>GDV kiểm tra</strong><span>Loại giao dịch, tài khoản, chủ tài khoản và số tiền trước khi submit.</span></div>
+          <button class="cash-submit-button" id="cash-submit-button">Xác nhận & Submit Mock</button>
+        </div>
+      </section>
+    </section>
+
+    <aside class="right-rail">
+      <section class="panel control-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CONTROL GATES</p>
+            <h2>Quyền thực thi</h2>
+          </div>
+          <span id="posting-state" class="lock-state">LOCKED</span>
+        </div>
+        <div id="control-gates" class="gate-list"></div>
+      </section>
+
+      <section class="panel trace-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">AGENTIC TRACE</p>
+            <h2>Plan & delegation</h2>
+          </div>
+          <span id="budget-counter" class="mini-stat">0 / 0</span>
+        </div>
+        <div id="plan-objective" class="objective">Chưa có kế hoạch.</div>
+        <div id="delegations" class="delegation-list"></div>
+      </section>
+
+      <section class="panel trace-panel grow">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">TOOL GATEWAY</p>
+            <h2>Tool activity</h2>
+          </div>
+          <span id="tool-counter" class="mini-stat">0 calls</span>
+        </div>
+        <div id="tool-calls" class="tool-list"></div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

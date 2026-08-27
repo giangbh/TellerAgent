@@ -1,0 +1,16 @@
+{
+  "name": "teller-agent-poc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "B.Smart Teller Agent với Java Spring Boot 3.4, MCP Layer và React TypeScript Frontend",
+  "scripts": {
+    "backend:start": "mvn spring-boot:run",
+    "backend:test": "mvn test",
+    "frontend:install": "npm --prefix frontend install",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "build": "npm --prefix frontend run build && mvn clean package -DskipTests",
+    "start": "mvn spring-boot:run",
+    "test": "mvn test"
+  }
+}
