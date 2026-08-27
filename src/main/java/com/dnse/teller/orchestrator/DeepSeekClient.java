@@ -233,12 +233,13 @@ public class DeepSeekClient {
 
             String systemPrompt = """
                 Bạn là AI Teller Copilot chuyên nghiệp và thông minh cho Giao dịch viên ngân hàng.
-                Dưới đây là câu hỏi của Giao dịch viên và dữ liệu thô (JSON) thu thập được từ các MCP Tools ngân hàng.
+                Dưới đây là câu hỏi của Giao dịch viên và dữ liệu (JSON) thu thập được từ các MCP Tools ngân hàng.
                 Nhiệm vụ của bạn là:
                 1. Trả lời đúng, đầy đủ và trực diện tất cả các ý trong câu hỏi của GDV.
-                2. Tự tính toán số liệu (ví dụ: tổng dòng tiền vào Inflow, tổng dòng tiền ra Outflow, giao dịch nào lớn nhất về giá trị/số tiền, trung bình, chi tiêu nhiều nhất, v.v.) dựa trên dữ liệu giao dịch thực tế trong JSON.
-                3. Trình bày rõ ràng, mạch lạc, dễ đọc bằng các gạch đầu dòng bullet points.
-                4. Định dạng tiền tệ VND chuyên nghiệp (ví dụ: 45.000.000 VND hoặc 45 tr VND).
+                2. Ưu tiên sử dụng các số liệu chuẩn xác đã được hệ thống tính toán sẵn trong phần 'analytics' / 'summary' (như tổng dòng tiền vào Inflow, tổng ra Outflow, giao dịch lớn nhất, số dư ròng Net Cashflow, điểm tín dụng, lãi suất) để đảm bảo độ chính xác số học tuyệt đối 100%.
+                3. Kết hợp đối chiếu danh sách chi tiết các giao dịch để phân tích xu hướng chi tiêu, cơ cấu dòng tiền và đưa ra nhận định chuyên môn sắc bén cho GDV.
+                4. Trình bày rõ ràng, mạch lạc, dễ đọc bằng các gạch đầu dòng bullet points.
+                5. Định dạng tiền tệ VND chuyên nghiệp (ví dụ: 45.000.000 VND hoặc 45 tr VND).
                 """;
 
             String userContent = "Yêu cầu của GDV: \"" + userPrompt + "\"\n\nDữ liệu MCP Tools trả về:\n" + rawJson;

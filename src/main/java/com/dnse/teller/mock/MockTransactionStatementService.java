@@ -99,12 +99,64 @@ public class MockTransactionStatementService {
             }
         }
 
+        long totalInflow = 0;
+        long totalOutflow = 0;
+        int inflowCount = 0;
+        int outflowCount = 0;
+        Map<String, Object> largestInflow = null;
+        Map<String, Object> largestOutflow = null;
+        long maxInflowVal = -1;
+        long maxOutflowVal = -1;
+
+        for (Map<String, Object> tx : txs) {
+            String type = (String) tx.get("type");
+            long amt = (Long) tx.get("amount");
+            if ("INFLOW".equals(type)) {
+                totalInflow += amt;
+                inflowCount++;
+                if (amt > maxInflowVal) {
+                    maxInflowVal = amt;
+                    largestInflow = tx;
+                }
+            } else {
+                long absAmt = Math.abs(amt);
+                totalOutflow += absAmt;
+                outflowCount++;
+                if (absAmt > maxOutflowVal) {
+                    maxOutflowVal = absAmt;
+                    largestOutflow = tx;
+                }
+            }
+        }
+
+        long netCashflow = totalInflow - totalOutflow;
+        long avgInflow = inflowCount > 0 ? totalInflow / inflowCount : 0;
+        long avgOutflow = outflowCount > 0 ? totalOutflow / outflowCount : 0;
+
+        Map<String, Object> analytics = new LinkedHashMap<>();
+        analytics.put("totalInflow", totalInflow);
+        analytics.put("totalOutflow", totalOutflow);
+        analytics.put("netCashflow", netCashflow);
+        analytics.put("inflowCount", inflowCount);
+        analytics.put("outflowCount", outflowCount);
+        analytics.put("largestInflowTransaction", largestInflow);
+        analytics.put("largestOutflowTransaction", largestOutflow);
+        analytics.put("averageInflowAmount", avgInflow);
+        analytics.put("averageOutflowAmount", avgOutflow);
+
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("accountNumber", num);
         res.put("customerRef", cif);
         res.put("transactionCount", txs.size());
+        res.put("analytics", analytics);
         res.put("transactions", txs);
-        res.put("summary", String.format("Trích lục thành công %d giao dịch gần nhất của tài khoản %s.", txs.size(), num));
+        res.put("summary", String.format(
+            "Sao kê tài khoản %s (%d giao dịch): Tổng vào %s VND (%d GD, lớn nhất: %s VND - %s), Tổng ra %s VND (%d GD, lớn nhất: %s VND - %s), Dòng tiền ròng: %s VND.",
+            num, txs.size(),
+            String.format("%,d", totalInflow), inflowCount, String.format("%,d", maxInflowVal), largestInflow != null ? largestInflow.get("description") : "N/A",
+            String.format("%,d", totalOutflow), outflowCount, String.format("%,d", maxOutflowVal), largestOutflow != null ? largestOutflow.get("description") : "N/A",
+            String.format("%,d", netCashflow)
+        ));
 
         return res;
     }
