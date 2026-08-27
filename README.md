@@ -51,6 +51,7 @@ Hệ thống Trợ lý AI Quầy Giao Dịch Ngân Hàng (**Smart Counter AI Cop
 
 * **[Tài liệu Kiến trúc Hệ thống: docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 * **[Tài liệu Kỹ thuật Chi tiết: docs/TECHNICAL_SPECIFICATION.md](docs/TECHNICAL_SPECIFICATION.md)**
+* **[Lộ Trình Phát Triển Doanh Nghiệp (Enterprise Roadmap): docs/ENTERPRISE_ROADMAP.md](docs/ENTERPRISE_ROADMAP.md)**
 * **[Hệ sinh thái 23 Công cụ MCP: docs/MCP_ECOSYSTEM.md](docs/MCP_ECOSYSTEM.md)**
 * **[Báo cáo Benchmark 100 Test Cases: docs/deepseek_100_testcase_report.md](docs/deepseek_100_testcase_report.md)**
 
