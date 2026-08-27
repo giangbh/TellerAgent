@@ -35,6 +35,8 @@ public class AgentSuite {
     private AgentResult runDynamicTool(String capabilityId, Session session) throws Exception {
         Map<String, Object> entities = session.getIntent() != null ? session.getIntent().getEntities() : Map.of();
         Map<String, Object> args = new LinkedHashMap<>();
+        String customerRef = entities.get("customerRef") != null ? String.valueOf(entities.get("customerRef"))
+            : (session.getCustomerRef() != null ? session.getCustomerRef() : "CIF-0001842");
 
         // Map relevant entities to args based on capability
         if ("fx.rate.lookup".equals(capabilityId)) {
@@ -42,8 +44,8 @@ public class AgentSuite {
             if (entities.get("amount") != null) args.put("amount", entities.get("amount"));
         } else if ("branch.directory.lookup".equals(capabilityId)) {
             args.put("city", entities.getOrDefault("city", "Hà Nội"));
-        } else if ("customer.accounts.summary".equals(capabilityId)) {
-            args.put("customerRef", session.getCustomerRef() != null ? session.getCustomerRef() : "CIF-0001842");
+        } else if ("customer.accounts.summary".equals(capabilityId) || "customer.profile.read".equals(capabilityId) || "customer.accounts.list".equals(capabilityId)) {
+            args.put("customerRef", customerRef);
         } else if ("pricing.transfer.fee".equals(capabilityId)) {
             args.put("amount", entities.getOrDefault("amount", 50_000_000L));
         } else if ("transfer.limit.check".equals(capabilityId)) {
@@ -54,6 +56,7 @@ public class AgentSuite {
             args.put("query", session.getIntent() != null ? session.getIntent().getQuery() : "quy trình");
         } else {
             args.putAll(entities);
+            if (!args.containsKey("customerRef")) args.put("customerRef", customerRef);
         }
 
         Map<String, Object> call = mcpServer.executeDirect(
@@ -84,11 +87,15 @@ public class AgentSuite {
 
     @SuppressWarnings("unchecked")
     private AgentResult runCustomerContext(Session session) throws Exception {
+        Map<String, Object> entities = session.getIntent() != null ? session.getIntent().getEntities() : Map.of();
+        String customerRef = entities.get("customerRef") != null ? String.valueOf(entities.get("customerRef"))
+            : (session.getCustomerRef() != null ? session.getCustomerRef() : "CIF-0001842");
+
         Map<String, Object> profileCall = mcpServer.executeDirect(
             "customer_context_agent",
             session.getWorkflow(),
             "customer.profile.read",
-            Map.of("customerRef", session.getCustomerRef() != null ? session.getCustomerRef() : "CIF-0001842"),
+            Map.of("customerRef", customerRef),
             null
         );
 
@@ -102,7 +109,7 @@ public class AgentSuite {
                 "customer_context_agent",
                 session.getWorkflow(),
                 "customer.accounts.list",
-                Map.of("customerRef", session.getCustomerRef() != null ? session.getCustomerRef() : "CIF-0001842"),
+                Map.of("customerRef", customerRef),
                 null
             );
             toolCalls.add(accountCall);

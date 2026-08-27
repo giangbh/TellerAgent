@@ -1,12 +1,20 @@
 package com.dnse.teller.mcp.tools;
 
 import com.dnse.teller.mcp.McpTool;
+import com.dnse.teller.mock.MockBankingDataService;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
 @Component
 public class AccountResolveTool implements McpTool {
+
+    private final MockBankingDataService mockService;
+
+    public AccountResolveTool(MockBankingDataService mockService) {
+        this.mockService = mockService;
+    }
+
     @Override
     public String getId() { return "account.resolve.by_number"; }
 
@@ -49,15 +57,6 @@ public class AccountResolveTool implements McpTool {
     @Override
     public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
         String num = args != null && args.get("accountNumber") != null ? String.valueOf(args.get("accountNumber")) : "3456789";
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("accountRef", "ACC-MOCK-" + num);
-        result.put("accountNumber", num);
-        result.put("accountNoMasked", "•••• " + (num.length() > 4 ? num.substring(num.length() - 4) : num));
-        result.put("accountHolder", "Nguyễn Minh Anh");
-        result.put("currency", "VND");
-        result.put("status", "ACTIVE");
-        result.put("availableBalance", 250_000_000L);
-        result.put("summary", String.format("Tài khoản %s: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 250.000.000 VND).", num));
-        return result;
+        return mockService.resolveAccount(num);
     }
 }

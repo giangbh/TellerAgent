@@ -36,6 +36,7 @@ public class RuleBasedReasoningEngine {
 
     private static final Pattern ACCOUNT_PAT = Pattern.compile("\\b\\d{6,14}\\b");
     private static final Pattern NAME_PAT = Pattern.compile("(?:cho|tên|người nhận)\\s+([A-Za-zÀ-ỹĐđ\\s]{3,40}?)(?=\\s+(?:tại|ở|ngân hàng|số tài khoản|stk|tk)|[,.;]|$)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern CIF_PAT = Pattern.compile("(?:cif|khách hàng|kh)[-:\\s]*([A-Za-z0-9_-]{4,15})", Pattern.CASE_INSENSITIVE);
 
     public RuleBasedReasoningEngine(McpToolRegistry toolRegistry) {
         this.toolRegistry = toolRegistry;
@@ -43,6 +44,7 @@ public class RuleBasedReasoningEngine {
 
     public Intent detectIntent(String text, Intent currentIntent) {
         String lower = text != null ? text.toLowerCase() : "";
+        String extractedCif = parseCif(text);
 
         // 1. Dynamic FX Rate / Currency Inquiry
         if (FX_PAT.matcher(lower).find()) {
@@ -77,7 +79,9 @@ public class RuleBasedReasoningEngine {
 
         // 3. Dynamic Customer Portfolio & Accounts Summary Inquiry
         if (SUMMARY_PAT.matcher(lower).find()) {
-            Intent summaryIntent = new Intent("DYNAMIC_ACCOUNT_SUMMARY", "dynamic_autonomous", 0.98, Map.of());
+            Map<String, Object> entities = new LinkedHashMap<>();
+            if (extractedCif != null) entities.put("customerRef", extractedCif);
+            Intent summaryIntent = new Intent("DYNAMIC_ACCOUNT_SUMMARY", "dynamic_autonomous", 0.98, entities);
             summaryIntent.setQuery(text);
             return summaryIntent;
         }
@@ -116,7 +120,9 @@ public class RuleBasedReasoningEngine {
 
         // 8. Default Dynamic Tool Discovery for any unclassified prompt
         List<String> discoveredTools = discoverTools(text);
-        Intent dynamicIntent = new Intent("DYNAMIC_AUTONOMOUS_TASK", "dynamic_autonomous", 0.88, extractTransferEntities(text, Map.of()));
+        Map<String, Object> entities = extractTransferEntities(text, Map.of());
+        if (extractedCif != null) entities.put("customerRef", extractedCif);
+        Intent dynamicIntent = new Intent("DYNAMIC_AUTONOMOUS_TASK", "dynamic_autonomous", 0.88, entities);
         dynamicIntent.setQuery(text);
         dynamicIntent.getEntities().put("discoveredTools", discoveredTools);
         return dynamicIntent;
@@ -231,6 +237,17 @@ public class RuleBasedReasoningEngine {
         return selected;
     }
 
+    public String parseCif(String text) {
+        if (text == null) return null;
+        Matcher m = CIF_PAT.matcher(text);
+        if (m.find()) {
+            String raw = m.group(1).trim();
+            if (raw.matches("(?i)cif-.*")) return raw.toUpperCase();
+            return "CIF-" + raw.toUpperCase();
+        }
+        return null;
+    }
+
     public Long parseAmount(String text) {
         if (text == null) return null;
         String normalized = text.toLowerCase().replace(",", ".");
@@ -309,6 +326,9 @@ public class RuleBasedReasoningEngine {
         String name = parseName(text);
         if (name != null) entities.put("beneficiaryName", name);
 
+        String cif = parseCif(text);
+        if (cif != null) entities.put("customerRef", cif);
+
         return entities;
     }
 
@@ -323,6 +343,9 @@ public class RuleBasedReasoningEngine {
 
         String name = parseName(text);
         if (name != null) entities.put("accountHolder", name);
+
+        String cif = parseCif(text);
+        if (cif != null) entities.put("customerRef", cif);
 
         return entities;
     }

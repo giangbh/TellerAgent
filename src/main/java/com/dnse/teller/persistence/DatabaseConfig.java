@@ -102,5 +102,33 @@ public class DatabaseConfig {
                 updated_at TEXT
             );
         """);
+
+        // 6. Dynamic Mock Customers Table
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS mock_customers (
+                cif TEXT PRIMARY KEY,
+                display_name TEXT,
+                kyc_status TEXT,
+                segment TEXT,
+                risk_rating TEXT,
+                identity_masked TEXT,
+                created_at TEXT
+            );
+        """);
+
+        // 7. Dynamic Mock Accounts Table
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS mock_accounts (
+                account_number TEXT PRIMARY KEY,
+                cif TEXT,
+                account_ref TEXT,
+                currency TEXT,
+                available_balance INTEGER,
+                account_type TEXT,
+                term_months INTEGER,
+                interest_rate REAL,
+                status TEXT
+            );
+        """);
     }
 }

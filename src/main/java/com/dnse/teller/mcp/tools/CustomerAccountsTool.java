@@ -1,12 +1,20 @@
 package com.dnse.teller.mcp.tools;
 
 import com.dnse.teller.mcp.McpTool;
+import com.dnse.teller.mock.MockBankingDataService;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
 @Component
 public class CustomerAccountsTool implements McpTool {
+
+    private final MockBankingDataService mockService;
+
+    public CustomerAccountsTool(MockBankingDataService mockService) {
+        this.mockService = mockService;
+    }
+
     @Override
     public String getId() { return "customer.accounts.list"; }
 
@@ -47,23 +55,7 @@ public class CustomerAccountsTool implements McpTool {
 
     @Override
     public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
-        List<Map<String, Object>> accounts = new ArrayList<>();
-        accounts.add(Map.of(
-            "accountRef", "ACC-001",
-            "accountNoMasked", "•••• 6789",
-            "currency", "VND",
-            "availableBalance", 250_000_000L
-        ));
-        accounts.add(Map.of(
-            "accountRef", "ACC-002",
-            "accountNoMasked", "•••• 2486",
-            "currency", "VND",
-            "availableBalance", 42_500_000L
-        ));
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("accounts", accounts);
-        result.put("summary", "Khách hàng có 2 tài khoản khả dụng: •••• 6789 (250 tr VND) và •••• 2486 (42,5 tr VND).");
-        return result;
+        String ref = args != null && args.get("customerRef") != null ? String.valueOf(args.get("customerRef")) : "CIF-0001842";
+        return mockService.getCustomerAccounts(ref);
     }
 }

@@ -1,12 +1,20 @@
 package com.dnse.teller.mcp.tools;
 
 import com.dnse.teller.mcp.McpTool;
+import com.dnse.teller.mock.MockBankingDataService;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
 @Component
 public class CustomerProfileTool implements McpTool {
+
+    private final MockBankingDataService mockService;
+
+    public CustomerProfileTool(MockBankingDataService mockService) {
+        this.mockService = mockService;
+    }
+
     @Override
     public String getId() { return "customer.profile.read"; }
 
@@ -48,14 +56,6 @@ public class CustomerProfileTool implements McpTool {
     @Override
     public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
         String ref = args != null && args.get("customerRef") != null ? String.valueOf(args.get("customerRef")) : "CIF-0001842";
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("customerRef", ref);
-        result.put("displayName", "Nguyễn Minh Anh");
-        result.put("kycStatus", "VERIFIED");
-        result.put("segment", "PRIORITY");
-        result.put("riskRating", "LOW");
-        result.put("identityMasked", "0123••••89");
-        result.put("summary", String.format("Khách hàng %s (CIF: %s) · Phân hạng: PRIORITY · KYC: VERIFIED · Xếp hạng rủi ro: LOW.", "Nguyễn Minh Anh", ref));
-        return result;
+        return mockService.getCustomerProfile(ref);
     }
 }
