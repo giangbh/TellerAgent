@@ -222,4 +222,62 @@ public class DeepSeekClient {
         Optional<McpTool> direct = toolRegistry.resolve(funcName);
         return direct.map(McpTool::getId).orElse(funcName);
     }
+
+    public Optional<String> synthesizeAnswer(String userPrompt, Map<String, Object> toolOutputs) {
+        if (!isConfiguredAndEnabled() || toolOutputs == null || toolOutputs.isEmpty()) {
+            return Optional.empty();
+        }
+
+        try {
+            String rawJson = objectMapper.writeValueAsString(toolOutputs);
+
+            String systemPrompt = """
+                Bạn là AI Teller Copilot chuyên nghiệp và thông minh cho Giao dịch viên ngân hàng.
+                Dưới đây là câu hỏi của Giao dịch viên và dữ liệu thô (JSON) thu thập được từ các MCP Tools ngân hàng.
+                Nhiệm vụ của bạn là:
+                1. Trả lời đúng, đầy đủ và trực diện tất cả các ý trong câu hỏi của GDV.
+                2. Tự tính toán số liệu (ví dụ: tổng dòng tiền vào Inflow, tổng dòng tiền ra Outflow, giao dịch nào lớn nhất về giá trị/số tiền, trung bình, chi tiêu nhiều nhất, v.v.) dựa trên dữ liệu giao dịch thực tế trong JSON.
+                3. Trình bày rõ ràng, mạch lạc, dễ đọc bằng các gạch đầu dòng bullet points.
+                4. Định dạng tiền tệ VND chuyên nghiệp (ví dụ: 45.000.000 VND hoặc 45 tr VND).
+                """;
+
+            String userContent = "Yêu cầu của GDV: \"" + userPrompt + "\"\n\nDữ liệu MCP Tools trả về:\n" + rawJson;
+
+            List<Map<String, Object>> messages = List.of(
+                Map.of("role", "system", "content", systemPrompt),
+                Map.of("role", "user", "content", userContent)
+            );
+
+            Map<String, Object> requestBody = new LinkedHashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", messages);
+            requestBody.put("temperature", 0.2);
+
+            String jsonPayload = objectMapper.writeValueAsString(requestBody);
+            String endpoint = baseUrl.endsWith("/") ? baseUrl + "chat/completions" : baseUrl + "/chat/completions";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + apiKey.trim())
+                .timeout(Duration.ofSeconds(timeoutSeconds))
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode choices = root.path("choices");
+                if (choices.isArray() && !choices.isEmpty()) {
+                    String content = choices.get(0).path("message").path("content").asText();
+                    if (content != null && !content.trim().isEmpty()) {
+                        return Optional.of(content.trim());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi DeepSeek tổng hợp phản hồi nghiệp vụ: " + e.getMessage());
+        }
+        return Optional.empty();
+    }
 }

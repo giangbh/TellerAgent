@@ -341,42 +341,74 @@ public class MockBankingDataService {
 
         List<Map<String, Object>> txs = new ArrayList<>();
         LocalDate today = LocalDate.now();
+        Random rng = new Random(num.hashCode() + 505);
 
-        txs.add(Map.of("txId", "TX-9901", "date", today.minusDays(1).toString(), "description", "Nhận tiền chuyển khoản từ CTY TNHH ABC (Lương T8)", "amount", 45_000_000L, "type", "INFLOW", "balanceAfter", 250_000_000L));
-        txs.add(Map.of("txId", "TX-9902", "date", today.minusDays(3).toString(), "description", "Thanh toán QR POS siêu thị WinMart+", "amount", -1_850_000L, "type", "OUTFLOW", "balanceAfter", 205_000_000L));
-        txs.add(Map.of("txId", "TX-9903", "date", today.minusDays(5).toString(), "description", "Chuyển tiền nhanh 24/7 đến Tran Thi Lan", "amount", -5_000_000L, "type", "OUTFLOW", "balanceAfter", 206_850_000L));
-        txs.add(Map.of("txId", "TX-9904", "date", today.minusDays(8).toString(), "description", "Tiền lãi tiết kiệm định kỳ", "amount", 7_250_000L, "type", "INFLOW", "balanceAfter", 211_850_000L));
+        // Predefined diverse transaction templates
+        String[] inflowDescs = {
+            "Nhận tiền chuyển khoản lương từ CTY TNHH ABC",
+            "Tiền lãi tiết kiệm có kỳ hạn đáo hạn",
+            "Khách hàng thanh toán tiền hợp đồng dịch vụ",
+            "Hoàn tiền ưu đãi chi tiêu thẻ tín dụng Cashback",
+            "Nhận kiều hối Western Union từ người thân",
+            "Thu hồi vốn đầu tư chứng khoán"
+        };
+        long[] inflowAmounts = { 45_000_000L, 8_500_000L, 22_000_000L, 1_250_000L, 15_000_000L, 35_000_000L };
 
-        long totalInflow = 0;
-        long totalOutflow = 0;
-        Map<String, Object> largestTx = null;
-        long maxAbsAmount = -1;
+        String[] outflowDescs = {
+            "Thanh toán QR POS siêu thị WinMart+",
+            "Chuyển tiền nhanh 24/7 đến Tran Thi Lan",
+            "Thanh toán tiền điện nước và Internet VNPT",
+            "Rút tiền mặt tại cây ATM VCB",
+            "Mua sắm online Shopee Pay / Tiki",
+            "Nộp phí bảo hiểm nhân thọ Manulife định kỳ",
+            "Thanh toán dư nợ sao kê thẻ tín dụng Visa",
+            "Ăn uống nhà hàng Golden Gate QR Pay"
+        };
+        long[] outflowAmounts = { 1_850_000L, 5_000_000L, 2_350_000L, 3_000_000L, 890_000L, 12_500_000L, 7_400_000L, 1_650_000L };
 
-        for (Map<String, Object> tx : txs) {
-            long amt = ((Number) tx.get("amount")).longValue();
-            if (amt > 0) totalInflow += amt;
-            else totalOutflow += Math.abs(amt);
+        long currentBal = 250_000_000L;
+        int txIdCounter = 101;
 
-            long abs = Math.abs(amt);
-            if (abs > maxAbsAmount) {
-                maxAbsAmount = abs;
-                largestTx = tx;
+        // Generate 12 varied transactions spanning the past 30 days
+        for (int i = 1; i <= 12; i++) {
+            boolean isInflow = (i % 3 == 0) || (i == 1);
+            int dayOffset = i * 2 + (rng.nextInt(2));
+            String txId = "TX-2026-" + (txIdCounter++);
+            String date = today.minusDays(dayOffset).toString();
+
+            if (isInflow) {
+                int idx = (i + Math.abs(rng.nextInt())) % inflowDescs.length;
+                long amt = inflowAmounts[idx] + (rng.nextInt(5) * 500_000L);
+                currentBal += amt;
+                txs.add(Map.of(
+                    "txId", txId,
+                    "date", date,
+                    "description", inflowDescs[idx],
+                    "amount", amt,
+                    "type", "INFLOW",
+                    "balanceAfter", currentBal
+                ));
+            } else {
+                int idx = (i + Math.abs(rng.nextInt())) % outflowDescs.length;
+                long amt = -(outflowAmounts[idx] + (rng.nextInt(3) * 100_000L));
+                currentBal += amt;
+                txs.add(Map.of(
+                    "txId", txId,
+                    "date", date,
+                    "description", outflowDescs[idx],
+                    "amount", amt,
+                    "type", "OUTFLOW",
+                    "balanceAfter", currentBal
+                ));
             }
         }
-
-        String largestDesc = largestTx != null 
-            ? String.format("%s (%s %s VND - %s)", largestTx.get("txId"), ((Number)largestTx.get("amount")).longValue() > 0 ? "+" : "-", formatMoney((Long)largestTx.get("amount")), largestTx.get("description"))
-            : "Không có";
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("accountNumber", num);
         res.put("customerRef", cif);
-        res.put("totalInflow", totalInflow);
-        res.put("totalOutflow", totalOutflow);
-        res.put("largestTransaction", largestTx);
+        res.put("transactionCount", txs.size());
         res.put("transactions", txs);
-        res.put("summary", String.format("Sao kê tài khoản %s (4 giao dịch gần nhất):\n• Dòng tiền vào (Inflow): +%s VND\n• Dòng tiền ra (Outflow): -%s VND\n• Giao dịch lớn nhất về mặt giá trị: %s\n• Số dư khả dụng hiện tại: 250.000.000 VND.",
-            num, formatMoney(totalInflow), formatMoney(totalOutflow), largestDesc));
+        res.put("summary", String.format("Trích lục thành công %d giao dịch gần nhất của tài khoản %s.", txs.size(), num));
 
         return res;
     }

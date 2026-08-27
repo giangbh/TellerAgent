@@ -56,6 +56,13 @@ public class ReasoningEngine {
         return ruleBasedEngine.proposePlan(session);
     }
 
+    public Optional<String> synthesizeAnswer(String userPrompt, Map<String, Object> toolOutputs) {
+        if (deepSeekClient.isConfiguredAndEnabled()) {
+            return deepSeekClient.synthesizeAnswer(userPrompt, toolOutputs);
+        }
+        return Optional.empty();
+    }
+
     public RuleBasedReasoningEngine getRuleBasedEngine() {
         return ruleBasedEngine;
     }

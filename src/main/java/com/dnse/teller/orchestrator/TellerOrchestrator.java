@@ -134,17 +134,28 @@ public class TellerOrchestrator {
         // Dynamic Autonomous Workflow handling
         if ("dynamic_autonomous".equals(session.getWorkflow())) {
             List<String> responses = new ArrayList<>();
+            Map<String, Object> allToolOutputs = new LinkedHashMap<>();
+
             for (Plan.PlanStep step : plan.getSteps()) {
                 AgentResult result = delegate(session, step.getTarget(), step.getId());
                 mergePatch(session, result);
+                if (result.getWrites() != null) {
+                    allToolOutputs.putAll(result.getWrites());
+                }
                 if (session.getPolicyFindings() != null && session.getPolicyFindings().getAnswer() != null) {
                     responses.add(session.getPolicyFindings().getAnswer());
                 }
             }
 
             session.setStatus("ASSISTANCE_READY");
-            String fullAns = String.join("\n\n", responses);
-            if (fullAns.isEmpty()) fullAns = "Đã hoàn thành khám phá và thực thi chuỗi công cụ MCP phù hợp.";
+
+            // Allow DeepSeek AI to synthesize and calculate intelligent response from raw tool outputs
+            Optional<String> aiSynthesis = reasoning.synthesizeAnswer(text, allToolOutputs);
+            String fullAns = aiSynthesis.orElseGet(() -> {
+                String fallback = String.join("\n\n", responses);
+                return fallback.isEmpty() ? "Đã hoàn thành khám phá và thực thi chuỗi công cụ MCP phù hợp." : fallback;
+            });
+
             long duration = System.currentTimeMillis() - startTime;
             session.getMessages().add(new ChatMessage("assistant", fullAns, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
             addEvent(session, "RESULT", "Dynamic ReAct hoàn thành", plan.getSteps().size() + " công cụ đã thực thi thành công.");
