@@ -26,17 +26,21 @@ public class AccountResolveTool implements McpTool {
     public boolean isRequiresIdempotency() { return false; }
 
     @Override
-    public List<String> getAllowedCallers() { return List.of("transaction_draft_agent"); }
+    public List<String> getAllowedCallers() {
+        return List.of("transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator");
+    }
 
     @Override
-    public List<String> getWorkflows() { return List.of("cash_deposit", "cash_withdrawal"); }
+    public List<String> getWorkflows() {
+        return List.of("cash_deposit", "cash_withdrawal", "dynamic_autonomous", "domestic_transfer");
+    }
 
     @Override
     public Map<String, Object> getInputSchema() {
         return Map.of(
             "type", "object",
             "properties", Map.of(
-                "accountNumber", Map.of("type", "string", "description", "Số tài khoản cần đối chiếu")
+                "accountNumber", Map.of("type", "string", "description", "Số tài khoản cần tra cứu")
             ),
             "required", List.of("accountNumber")
         );
@@ -44,22 +48,16 @@ public class AccountResolveTool implements McpTool {
 
     @Override
     public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
-        String accountNumber = args != null && args.get("accountNumber") != null ? String.valueOf(args.get("accountNumber")) : "";
-        boolean known = "3456789".equals(accountNumber);
-
+        String num = args != null && args.get("accountNumber") != null ? String.valueOf(args.get("accountNumber")) : "3456789";
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("accountRef", known ? "ACC-CASH-3456789" : "ACC-CASH-" + accountNumber);
-        result.put("accountNumber", accountNumber);
-        result.put("accountNoMasked", maskAccount(accountNumber));
-        result.put("accountHolder", known ? "Nguyễn Minh Anh" : "Chủ tài khoản Mock");
-        result.put("status", !accountNumber.isEmpty() ? "ACTIVE" : "NOT_FOUND");
+        result.put("accountRef", "ACC-MOCK-" + num);
+        result.put("accountNumber", num);
+        result.put("accountNoMasked", "•••• " + (num.length() > 4 ? num.substring(num.length() - 4) : num));
+        result.put("accountHolder", "Nguyễn Minh Anh");
         result.put("currency", "VND");
-        result.put("availableBalance", known ? 180_000_000L : 90_000_000L);
+        result.put("status", "ACTIVE");
+        result.put("availableBalance", 250_000_000L);
+        result.put("summary", String.format("Tài khoản %s: Chủ tài khoản Nguyễn Minh Anh (Trạng thái: ACTIVE, Số dư khả dụng: 250.000.000 VND).", num));
         return result;
-    }
-
-    private String maskAccount(String value) {
-        if (value == null || value.length() <= 4) return value;
-        return "•".repeat(value.length() - 4) + value.substring(value.length() - 4);
     }
 }

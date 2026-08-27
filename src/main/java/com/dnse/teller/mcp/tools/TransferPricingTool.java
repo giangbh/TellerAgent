@@ -26,17 +26,21 @@ public class TransferPricingTool implements McpTool {
     public boolean isRequiresIdempotency() { return false; }
 
     @Override
-    public List<String> getAllowedCallers() { return List.of("policy_agent"); }
+    public List<String> getAllowedCallers() {
+        return List.of("policy_agent", "dynamic_tool_agent", "business_orchestrator");
+    }
 
     @Override
-    public List<String> getWorkflows() { return List.of("domestic_transfer"); }
+    public List<String> getWorkflows() {
+        return List.of("domestic_transfer", "dynamic_autonomous", "policy_assistance");
+    }
 
     @Override
     public Map<String, Object> getInputSchema() {
         return Map.of(
             "type", "object",
             "properties", Map.of(
-                "amount", Map.of("type", "number", "description", "Số tiền chuyển")
+                "amount", Map.of("type", "number", "description", "Số tiền chuyển khoản (VND)")
             ),
             "required", List.of("amount")
         );
@@ -48,16 +52,19 @@ public class TransferPricingTool implements McpTool {
         if (args != null && args.get("amount") != null) {
             amount = ((Number) args.get("amount")).longValue();
         }
-        long fee = Math.min(1_000_000L, Math.max(10_000L, Math.round(amount * 0.0003)));
+
+        long fee = amount > 100_000_000L ? 25_000L : 15_000L;
         long vat = Math.round(fee * 0.1);
+        long totalFee = fee + vat;
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("amount", amount);
         result.put("fee", fee);
         result.put("vat", vat);
-        result.put("totalFee", fee + vat);
+        result.put("totalFee", totalFee);
         result.put("currency", "VND");
         result.put("mock", true);
+        result.put("summary", String.format("Phí chuyển khoản cho số tiền %,d VND: Phí cơ bản %,d VND + VAT 10%% (%,d VND) = Tổng phí %,d VND.", amount, fee, vat, totalFee));
         return result;
     }
 }

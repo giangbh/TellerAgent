@@ -29,11 +29,13 @@ public class PolicySearchTool implements McpTool {
     public boolean isRequiresIdempotency() { return false; }
 
     @Override
-    public List<String> getAllowedCallers() { return List.of("policy_agent"); }
+    public List<String> getAllowedCallers() {
+        return List.of("policy_agent", "dynamic_tool_agent", "business_orchestrator");
+    }
 
     @Override
     public List<String> getWorkflows() {
-        return List.of("domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance");
+        return List.of("domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance", "dynamic_autonomous");
     }
 
     @Override
@@ -78,6 +80,7 @@ public class PolicySearchTool implements McpTool {
                 )
             ));
         }
+        result.put("summary", result.get("answer"));
         return result;
     }
 }

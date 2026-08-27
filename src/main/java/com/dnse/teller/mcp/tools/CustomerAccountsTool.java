@@ -26,11 +26,13 @@ public class CustomerAccountsTool implements McpTool {
     public boolean isRequiresIdempotency() { return false; }
 
     @Override
-    public List<String> getAllowedCallers() { return List.of("customer_context_agent"); }
+    public List<String> getAllowedCallers() {
+        return List.of("customer_context_agent", "dynamic_tool_agent", "business_orchestrator");
+    }
 
     @Override
     public List<String> getWorkflows() {
-        return List.of("domestic_transfer", "cash_withdrawal");
+        return List.of("domestic_transfer", "cash_withdrawal", "dynamic_autonomous", "policy_assistance", "cash_deposit");
     }
 
     @Override
@@ -61,6 +63,7 @@ public class CustomerAccountsTool implements McpTool {
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("accounts", accounts);
+        result.put("summary", "Khách hàng có 2 tài khoản khả dụng: •••• 6789 (250 tr VND) và •••• 2486 (42,5 tr VND).");
         return result;
     }
 }

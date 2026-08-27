@@ -7,6 +7,8 @@ import java.util.*;
 
 @Component
 public class TransferLimitCheckTool implements McpTool {
+    private static final long TELLER_MAX_AMOUNT = 100_000_000L;
+
     @Override
     public String getId() { return "transfer.limit.check"; }
 
@@ -14,7 +16,7 @@ public class TransferLimitCheckTool implements McpTool {
     public String getName() { return "transfer_limit_check"; }
 
     @Override
-    public String getDescription() { return "Kiểm tra hạn mức Teller và yêu cầu cấp phê duyệt."; }
+    public String getDescription() { return "Kiểm tra hạn mức giao dịch chuyển khoản của Teller."; }
 
     @Override
     public String getRisk() { return "CONTROL_READ"; }
@@ -26,10 +28,14 @@ public class TransferLimitCheckTool implements McpTool {
     public boolean isRequiresIdempotency() { return false; }
 
     @Override
-    public List<String> getAllowedCallers() { return List.of("transaction_draft_agent"); }
+    public List<String> getAllowedCallers() {
+        return List.of("transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator");
+    }
 
     @Override
-    public List<String> getWorkflows() { return List.of("domestic_transfer"); }
+    public List<String> getWorkflows() {
+        return List.of("domestic_transfer", "dynamic_autonomous");
+    }
 
     @Override
     public Map<String, Object> getInputSchema() {
@@ -48,13 +54,14 @@ public class TransferLimitCheckTool implements McpTool {
         if (args != null && args.get("amount") != null) {
             amount = ((Number) args.get("amount")).longValue();
         }
-        long tellerLimit = 100_000_000L;
 
+        boolean supervisorRequired = amount > TELLER_MAX_AMOUNT;
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("amount", amount);
-        result.put("tellerLimit", tellerLimit);
-        result.put("withinTellerLimit", amount <= tellerLimit);
-        result.put("supervisorRequired", amount > tellerLimit);
+        result.put("tellerMaxAmount", TELLER_MAX_AMOUNT);
+        result.put("supervisorRequired", supervisorRequired);
+        result.put("reason", supervisorRequired ? "Số tiền vượt hạn mức GDV (100.000.000 VND), cần Kiểm soát viên duyệt." : "Trong hạn mức GDV tự phê duyệt.");
+        result.put("summary", result.get("reason"));
         return result;
     }
 }

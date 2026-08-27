@@ -26,11 +26,13 @@ public class CustomerProfileTool implements McpTool {
     public boolean isRequiresIdempotency() { return false; }
 
     @Override
-    public List<String> getAllowedCallers() { return List.of("customer_context_agent"); }
+    public List<String> getAllowedCallers() {
+        return List.of("customer_context_agent", "dynamic_tool_agent", "business_orchestrator");
+    }
 
     @Override
     public List<String> getWorkflows() {
-        return List.of("domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance");
+        return List.of("domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance", "dynamic_autonomous");
     }
 
     @Override
@@ -53,6 +55,7 @@ public class CustomerProfileTool implements McpTool {
         result.put("segment", "PRIORITY");
         result.put("riskRating", "LOW");
         result.put("identityMasked", "0123••••89");
+        result.put("summary", String.format("Khách hàng %s (CIF: %s) · Phân hạng: PRIORITY · KYC: VERIFIED · Xếp hạng rủi ro: LOW.", "Nguyễn Minh Anh", ref));
         return result;
     }
 }

@@ -7,11 +7,11 @@ import java.util.*;
 
 @Component
 public class BankDirectoryTool implements McpTool {
-    private static final Map<String, String> BANKS = Map.of(
-        "VCB", "Ngân hàng TMCP Ngoại thương Việt Nam",
-        "BIDV", "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam",
-        "CTG", "Ngân hàng TMCP Công thương Việt Nam",
-        "TCB", "Ngân hàng TMCP Kỹ thương Việt Nam"
+    private static final Map<String, Map<String, String>> BANKS = Map.of(
+        "VCB", Map.of("bankCode", "VCB", "bankName", "Ngân hàng TMCP Ngoại thương Việt Nam", "bin", "970436", "fastTransferSupported", "true"),
+        "BIDV", Map.of("bankCode", "BIDV", "bankName", "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam", "bin", "970418", "fastTransferSupported", "true"),
+        "CTG", Map.of("bankCode", "CTG", "bankName", "Ngân hàng TMCP Công thương Việt Nam", "bin", "970415", "fastTransferSupported", "true"),
+        "TCB", Map.of("bankCode", "TCB", "bankName", "Ngân hàng TMCP Kỹ thương Việt Nam", "bin", "970407", "fastTransferSupported", "true")
     );
 
     @Override
@@ -21,7 +21,7 @@ public class BankDirectoryTool implements McpTool {
     public String getName() { return "bank_directory_lookup"; }
 
     @Override
-    public String getDescription() { return "Tra cứu mã và tên ngân hàng thụ hưởng."; }
+    public String getDescription() { return "Tra cứu thông tin ngân hàng thụ hưởng từ mã định danh."; }
 
     @Override
     public String getRisk() { return "READ_SAFE"; }
@@ -33,17 +33,21 @@ public class BankDirectoryTool implements McpTool {
     public boolean isRequiresIdempotency() { return false; }
 
     @Override
-    public List<String> getAllowedCallers() { return List.of("transaction_draft_agent"); }
+    public List<String> getAllowedCallers() {
+        return List.of("transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator");
+    }
 
     @Override
-    public List<String> getWorkflows() { return List.of("domestic_transfer"); }
+    public List<String> getWorkflows() {
+        return List.of("domestic_transfer", "dynamic_autonomous", "policy_assistance");
+    }
 
     @Override
     public Map<String, Object> getInputSchema() {
         return Map.of(
             "type", "object",
             "properties", Map.of(
-                "bankCode", Map.of("type", "string", "description", "Mã ngân hàng (VCB, BIDV, CTG, TCB...)")
+                "bankCode", Map.of("type", "string", "description", "Mã ngân hàng (VCB, BIDV, CTG, TCB)")
             ),
             "required", List.of("bankCode")
         );
@@ -51,11 +55,20 @@ public class BankDirectoryTool implements McpTool {
 
     @Override
     public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
-        String bankCode = args != null && args.get("bankCode") != null ? String.valueOf(args.get("bankCode")).toUpperCase() : "";
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("bankCode", bankCode);
-        result.put("bankName", BANKS.getOrDefault(bankCode, "Ngân hàng thụ hưởng (mock)"));
-        result.put("serviceStatus", "AVAILABLE");
+        String code = args != null && args.get("bankCode") != null ? String.valueOf(args.get("bankCode")).toUpperCase() : "VCB";
+        Map<String, String> info = BANKS.get(code);
+
+        if (info == null) {
+            info = Map.of(
+                "bankCode", code,
+                "bankName", "Ngân hàng TMCP " + code,
+                "bin", "970499",
+                "fastTransferSupported", "true"
+            );
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>(info);
+        result.put("summary", String.format("Ngân hàng: %s (Mã: %s, BIN: %s, Chuyển nhanh 24/7: Khả dụng).", info.get("bankName"), code, info.get("bin")));
         return result;
     }
 }

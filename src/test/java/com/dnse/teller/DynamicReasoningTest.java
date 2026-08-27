@@ -58,4 +58,16 @@ public class DynamicReasoningTest {
         String lastMsg = updated.getMessages().get(updated.getMessages().size() - 1).getText();
         assertTrue(lastMsg.contains("tiết kiệm") || lastMsg.contains("tài khoản"));
     }
+
+    @Test
+    void testDynamicCustomerProfileRead() throws Exception {
+        Session session = orchestrator.createSession(Map.of("customerRef", "CIF-0001842"));
+        Session updated = orchestrator.processMessage(session.getSessionId(), "Tra cứu thông tin khách hàng CIF CIF-0001842");
+
+        assertNotNull(updated);
+        assertEquals("ASSISTANCE_READY", updated.getStatus());
+
+        String lastMsg = updated.getMessages().get(updated.getMessages().size() - 1).getText();
+        assertTrue(lastMsg.contains("Nguyễn Minh Anh") || lastMsg.contains("PRIORITY"));
+    }
 }
