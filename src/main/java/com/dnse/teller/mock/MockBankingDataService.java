@@ -347,11 +347,36 @@ public class MockBankingDataService {
         txs.add(Map.of("txId", "TX-9903", "date", today.minusDays(5).toString(), "description", "Chuyển tiền nhanh 24/7 đến Tran Thi Lan", "amount", -5_000_000L, "type", "OUTFLOW", "balanceAfter", 206_850_000L));
         txs.add(Map.of("txId", "TX-9904", "date", today.minusDays(8).toString(), "description", "Tiền lãi tiết kiệm định kỳ", "amount", 7_250_000L, "type", "INFLOW", "balanceAfter", 211_850_000L));
 
+        long totalInflow = 0;
+        long totalOutflow = 0;
+        Map<String, Object> largestTx = null;
+        long maxAbsAmount = -1;
+
+        for (Map<String, Object> tx : txs) {
+            long amt = ((Number) tx.get("amount")).longValue();
+            if (amt > 0) totalInflow += amt;
+            else totalOutflow += Math.abs(amt);
+
+            long abs = Math.abs(amt);
+            if (abs > maxAbsAmount) {
+                maxAbsAmount = abs;
+                largestTx = tx;
+            }
+        }
+
+        String largestDesc = largestTx != null 
+            ? String.format("%s (%s %s VND - %s)", largestTx.get("txId"), ((Number)largestTx.get("amount")).longValue() > 0 ? "+" : "-", formatMoney((Long)largestTx.get("amount")), largestTx.get("description"))
+            : "Không có";
+
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("accountNumber", num);
         res.put("customerRef", cif);
+        res.put("totalInflow", totalInflow);
+        res.put("totalOutflow", totalOutflow);
+        res.put("largestTransaction", largestTx);
         res.put("transactions", txs);
-        res.put("summary", String.format("Sao kê gần nhất tài khoản %s: 4 giao dịch (Tổng tiền vào: +52,25 tr VND, Tổng chi tiêu: -6,85 tr VND, Số dư hiện tại: 250 tr VND).", num));
+        res.put("summary", String.format("Sao kê tài khoản %s (4 giao dịch gần nhất):\n• Dòng tiền vào (Inflow): +%s VND\n• Dòng tiền ra (Outflow): -%s VND\n• Giao dịch lớn nhất về mặt giá trị: %s\n• Số dư khả dụng hiện tại: 250.000.000 VND.",
+            num, formatMoney(totalInflow), formatMoney(totalOutflow), largestDesc));
 
         return res;
     }
