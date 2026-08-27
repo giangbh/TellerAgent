@@ -34,9 +34,18 @@ public class RuleBasedReasoningEngine {
     private static final Pattern BRANCH_PAT = Pattern.compile("chi nhánh|phòng giao dịch|pgd|địa chỉ|hotline|trụ sở|ở đâu|điểm giao dịch", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern SUMMARY_PAT = Pattern.compile("tổng hợp|tất cả tài khoản|bao nhiêu tài khoản|sổ tiết kiệm|tiền gửi|tổng số dư", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
+    // Advanced Banking Patterns
+    private static final Pattern PERSONA_PAT = Pattern.compile("chân dung|phân tích khách hàng|hành vi|khẩu vị đầu tư|gắn bó|thói quen", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern CREDIT_SCORE_PAT = Pattern.compile("điểm tín dụng|cic|nợ xấu|vay được bao nhiêu|hạn mức vay|chấm điểm tín nhiệm", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern NBO_PAT = Pattern.compile("tư vấn|gợi ý|ưu đãi|sản phẩm phù hợp|bán chéo|\\boffer\\b|khuyến nghị", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern SAVINGS_ADVISE_PAT = Pattern.compile("tính lãi|lãi bao nhiêu|kỳ hạn tốt nhất|tối ưu lãi|phương án tiết kiệm", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern CARD_MANAGE_PAT = Pattern.compile("thẻ tín dụng|thẻ ghi nợ|khóa thẻ|mở thẻ|đổi pin|hạn mức thẻ|\\bvisa\\b|\\bmastercard\\b|\\bnapas\\b", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern HISTORY_PAT = Pattern.compile("sao kê|lịch sử giao dịch|tiền vào tiền ra|trích lục|biến động số dư", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+
     private static final Pattern ACCOUNT_PAT = Pattern.compile("\\b\\d{6,14}\\b");
     private static final Pattern NAME_PAT = Pattern.compile("(?:cho|tên|người nhận)\\s+([A-Za-zÀ-ỹĐđ\\s]{3,40}?)(?=\\s+(?:tại|ở|ngân hàng|số tài khoản|stk|tk)|[,.;]|$)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern CIF_PAT = Pattern.compile("(?:cif|khách hàng|kh)[-:\\s]*([A-Za-z0-9_-]{4,15})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TERM_PAT = Pattern.compile("(\\d{1,2})\\s*(?:tháng|thg|m)\\b", Pattern.CASE_INSENSITIVE);
 
     public RuleBasedReasoningEngine(McpToolRegistry toolRegistry) {
         this.toolRegistry = toolRegistry;
@@ -45,12 +54,70 @@ public class RuleBasedReasoningEngine {
     public Intent detectIntent(String text, Intent currentIntent) {
         String lower = text != null ? text.toLowerCase() : "";
         String extractedCif = parseCif(text);
+        Long extractedAmount = parseAmount(text);
+        Integer extractedTerm = parseTerm(text);
 
-        // 1. Dynamic FX Rate / Currency Inquiry
+        // 1. Dynamic Next-Best-Offer / Product Recommendation
+        if (NBO_PAT.matcher(lower).find()) {
+            Map<String, Object> entities = new LinkedHashMap<>();
+            if (extractedCif != null) entities.put("customerRef", extractedCif);
+            Intent nboIntent = new Intent("DYNAMIC_NBO_LOOKUP", "dynamic_autonomous", 0.98, entities);
+            nboIntent.setQuery(text);
+            return nboIntent;
+        }
+
+        // 2. Dynamic Savings Yield & Product Advisor
+        if (SAVINGS_ADVISE_PAT.matcher(lower).find()) {
+            Map<String, Object> entities = new LinkedHashMap<>();
+            if (extractedAmount != null) entities.put("amount", extractedAmount);
+            if (extractedTerm != null) entities.put("termMonths", extractedTerm);
+            Intent savingsIntent = new Intent("DYNAMIC_SAVINGS_ADVISE", "dynamic_autonomous", 0.98, entities);
+            savingsIntent.setQuery(text);
+            return savingsIntent;
+        }
+
+        // 3. Dynamic Customer Persona 360 Analytics
+        if (PERSONA_PAT.matcher(lower).find()) {
+            Map<String, Object> entities = new LinkedHashMap<>();
+            if (extractedCif != null) entities.put("customerRef", extractedCif);
+            Intent personaIntent = new Intent("DYNAMIC_PERSONA_LOOKUP", "dynamic_autonomous", 0.98, entities);
+            personaIntent.setQuery(text);
+            return personaIntent;
+        }
+
+        // 4. Dynamic Credit Score & CIC Inquiry
+        if (CREDIT_SCORE_PAT.matcher(lower).find()) {
+            Map<String, Object> entities = new LinkedHashMap<>();
+            if (extractedCif != null) entities.put("customerRef", extractedCif);
+            Intent creditIntent = new Intent("DYNAMIC_CREDIT_SCORE_LOOKUP", "dynamic_autonomous", 0.98, entities);
+            creditIntent.setQuery(text);
+            return creditIntent;
+        }
+
+        // 5. Dynamic Card Services & Operations
+        if (CARD_MANAGE_PAT.matcher(lower).find()) {
+            Map<String, Object> entities = new LinkedHashMap<>();
+            if (extractedCif != null) entities.put("customerRef", extractedCif);
+            Intent cardIntent = new Intent("DYNAMIC_CARD_MANAGE", "dynamic_autonomous", 0.98, entities);
+            cardIntent.setQuery(text);
+            return cardIntent;
+        }
+
+        // 6. Dynamic Statement & Transaction History
+        if (HISTORY_PAT.matcher(lower).find()) {
+            Map<String, Object> entities = new LinkedHashMap<>();
+            String account = parseAccount(text);
+            if (account != null) entities.put("accountNumber", account);
+            if (extractedCif != null) entities.put("customerRef", extractedCif);
+            Intent historyIntent = new Intent("DYNAMIC_TRANSACTION_HISTORY", "dynamic_autonomous", 0.98, entities);
+            historyIntent.setQuery(text);
+            return historyIntent;
+        }
+
+        // 7. Dynamic FX Rate / Currency Inquiry
         if (FX_PAT.matcher(lower).find()) {
             Map<String, Object> entities = new LinkedHashMap<>();
-            Long amount = parseAmount(text);
-            if (amount != null) entities.put("amount", amount);
+            if (extractedAmount != null) entities.put("amount", extractedAmount);
 
             String currency = "USD";
             if (lower.contains("eur")) currency = "EUR";
@@ -64,7 +131,7 @@ public class RuleBasedReasoningEngine {
             return fxIntent;
         }
 
-        // 2. Dynamic Branch / Location Inquiry
+        // 8. Dynamic Branch / Location Inquiry
         if (BRANCH_PAT.matcher(lower).find()) {
             Map<String, Object> entities = new LinkedHashMap<>();
             String city = "Hà Nội";
@@ -77,7 +144,7 @@ public class RuleBasedReasoningEngine {
             return branchIntent;
         }
 
-        // 3. Dynamic Customer Portfolio & Accounts Summary Inquiry
+        // 9. Dynamic Customer Portfolio & Accounts Summary Inquiry
         if (SUMMARY_PAT.matcher(lower).find()) {
             Map<String, Object> entities = new LinkedHashMap<>();
             if (extractedCif != null) entities.put("customerRef", extractedCif);
@@ -86,14 +153,14 @@ public class RuleBasedReasoningEngine {
             return summaryIntent;
         }
 
-        // 4. Policy Assistance
+        // 10. Policy Assistance
         if (POLICY_QUERY_PAT.matcher(lower).find()) {
             Intent policyIntent = new Intent("POLICY_ASSISTANCE", "policy_assistance", 0.95, Map.of());
             policyIntent.setQuery(text);
             return policyIntent;
         }
 
-        // 5. Cash Deposit & Withdrawal
+        // 11. Cash Deposit & Withdrawal
         if (CASH_DEPOSIT_PAT.matcher(lower).find()) {
             return new Intent("CASH_DEPOSIT", "cash_deposit", 0.97, extractCashEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
@@ -101,12 +168,12 @@ public class RuleBasedReasoningEngine {
             return new Intent("CASH_WITHDRAWAL", "cash_withdrawal", 0.97, extractCashEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
 
-        // 6. Domestic Transfer
+        // 12. Domestic Transfer
         if (TRANSFER_PAT.matcher(lower).find()) {
             return new Intent("DOMESTIC_TRANSFER", "domestic_transfer", 0.94, extractTransferEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
 
-        // 7. Resume previous state if present
+        // 13. Resume previous state if present
         if (currentIntent != null && "DOMESTIC_TRANSFER".equals(currentIntent.getType())) {
             Intent updated = new Intent(currentIntent.getType(), currentIntent.getWorkflow(), 0.99, extractTransferEntities(text, currentIntent.getEntities()));
             updated.setQuery(currentIntent.getQuery());
@@ -118,7 +185,7 @@ public class RuleBasedReasoningEngine {
             return updated;
         }
 
-        // 8. Default Dynamic Tool Discovery for any unclassified prompt
+        // 14. Default Dynamic Tool Discovery for any unclassified prompt
         List<String> discoveredTools = discoverTools(text);
         Map<String, Object> entities = extractTransferEntities(text, Map.of());
         if (extractedCif != null) entities.put("customerRef", extractedCif);
@@ -130,6 +197,54 @@ public class RuleBasedReasoningEngine {
 
     public Plan proposePlan(Session session) {
         String intentType = session.getIntent() != null ? session.getIntent().getType() : "DYNAMIC_AUTONOMOUS_TASK";
+
+        if ("DYNAMIC_NBO_LOOKUP".equals(intentType)) {
+            return new Plan(
+                "Khám phá công cụ động: Tư vấn gợi ý sản phẩm ưu đãi cá nhân hóa (NBO)",
+                List.of(new PlanStep("S1", "DELEGATE", "dynamic_tool_agent:recommendation.nbo.products", List.of())),
+                List.of("Có danh sách gợi ý sản phẩm", "Có quyền lợi chi tiết")
+            );
+        }
+
+        if ("DYNAMIC_SAVINGS_ADVISE".equals(intentType)) {
+            return new Plan(
+                "Khám phá công cụ động: Mô phỏng tối ưu lãi suất tiền gửi tiết kiệm",
+                List.of(new PlanStep("S1", "DELEGATE", "dynamic_tool_agent:savings.product.advisor", List.of())),
+                List.of("Có bảng tính lãi suất", "Có dòng tiền kỳ vọng khi đáo hạn")
+            );
+        }
+
+        if ("DYNAMIC_PERSONA_LOOKUP".equals(intentType)) {
+            return new Plan(
+                "Khám phá công cụ động: Phân tích chân dung 360 độ và hành vi khách hàng",
+                List.of(new PlanStep("S1", "DELEGATE", "dynamic_tool_agent:customer.persona.analytics", List.of())),
+                List.of("Có nhóm chân dung", "Có kênh ưa chuộng & khẩu vị rủi ro")
+            );
+        }
+
+        if ("DYNAMIC_CREDIT_SCORE_LOOKUP".equals(intentType)) {
+            return new Plan(
+                "Khám phá công cụ động: Tra cứu điểm tín dụng nội bộ, CIC và hạn mức vay",
+                List.of(new PlanStep("S1", "DELEGATE", "dynamic_tool_agent:customer.credit.score.check", List.of())),
+                List.of("Có điểm tín nhiệm CIC", "Có hạn mức phê duyệt trước")
+            );
+        }
+
+        if ("DYNAMIC_CARD_MANAGE".equals(intentType)) {
+            return new Plan(
+                "Khám phá công cụ động: Tra cứu trạng thái thẻ và hạn mức thanh toán",
+                List.of(new PlanStep("S1", "DELEGATE", "dynamic_tool_agent:card.service.manage", List.of())),
+                List.of("Có danh sách thẻ", "Có trạng thái & hạn mức")
+            );
+        }
+
+        if ("DYNAMIC_TRANSACTION_HISTORY".equals(intentType)) {
+            return new Plan(
+                "Khám phá công cụ động: Trích lục lịch sử giao dịch sao kê và dòng tiền",
+                List.of(new PlanStep("S1", "DELEGATE", "dynamic_tool_agent:statement.transaction.history", List.of())),
+                List.of("Có lịch sử biến động số dư", "Có phân loại thu-chi")
+            );
+        }
 
         if ("DYNAMIC_FX_LOOKUP".equals(intentType)) {
             return new Plan(
@@ -222,6 +337,12 @@ public class RuleBasedReasoningEngine {
         String lower = prompt != null ? prompt.toLowerCase() : "";
         List<String> selected = new ArrayList<>();
 
+        if (lower.contains("tư vấn") || lower.contains("gợi ý") || lower.contains("offer")) selected.add("recommendation.nbo.products");
+        if (lower.contains("chân dung") || lower.contains("hành vi")) selected.add("customer.persona.analytics");
+        if (lower.contains("tín dụng") || lower.contains("cic") || lower.contains("vay")) selected.add("customer.credit.score.check");
+        if (lower.contains("lãi") || lower.contains("tiết kiệm")) selected.add("savings.product.advisor");
+        if (lower.contains("thẻ") || lower.contains("card")) selected.add("card.service.manage");
+        if (lower.contains("sao kê") || lower.contains("lịch sử")) selected.add("statement.transaction.history");
         if (lower.contains("phí") || lower.contains("fee")) selected.add("pricing.transfer.fee");
         if (lower.contains("hạn mức") || lower.contains("limit")) selected.add("transfer.limit.check");
         if (lower.contains("ngân hàng") || lower.contains("bank") || lower.contains("vcb") || lower.contains("bidv")) selected.add("bank.directory.lookup");
@@ -248,6 +369,17 @@ public class RuleBasedReasoningEngine {
         return null;
     }
 
+    public Integer parseTerm(String text) {
+        if (text == null) return null;
+        Matcher m = TERM_PAT.matcher(text);
+        if (m.find()) {
+            try {
+                return Integer.parseInt(m.group(1));
+            } catch (NumberFormatException ignored) {}
+        }
+        return null;
+    }
+
     public Long parseAmount(String text) {
         if (text == null) return null;
         String normalized = text.toLowerCase().replace(",", ".");
@@ -266,7 +398,6 @@ public class RuleBasedReasoningEngine {
             return Math.round(base * mult);
         }
 
-        // Formatted amount (e.g. 50.000.000 or 25.000.000)
         Pattern amountFormatted = Pattern.compile("\\b(\\d{1,3}(?:\\.\\d{3})+)\\b");
         Matcher m2 = amountFormatted.matcher(normalized);
         if (m2.find()) {

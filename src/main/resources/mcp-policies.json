@@ -24,6 +24,54 @@
     "allowedWorkflows": ["dynamic_autonomous", "domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance"]
   },
   {
+    "capabilityId": "customer.persona.analytics",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "customer_context_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "policy_assistance", "domestic_transfer"]
+  },
+  {
+    "capabilityId": "customer.credit.score.check",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "customer_context_agent", "risk_assistant", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "policy_assistance"]
+  },
+  {
+    "capabilityId": "recommendation.nbo.products",
+    "riskLevel": "READ_SAFE",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "policy_agent", "customer_context_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "policy_assistance"]
+  },
+  {
+    "capabilityId": "savings.product.advisor",
+    "riskLevel": "READ_SAFE",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "policy_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "policy_assistance"]
+  },
+  {
+    "capabilityId": "card.service.manage",
+    "riskLevel": "CONTROL_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "customer_context_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "policy_assistance"]
+  },
+  {
+    "capabilityId": "statement.transaction.history",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "customer_context_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "domestic_transfer", "cash_deposit", "cash_withdrawal"]
+  },
+  {
     "capabilityId": "fx.rate.lookup",
     "riskLevel": "READ_SAFE",
     "isSideEffect": false,

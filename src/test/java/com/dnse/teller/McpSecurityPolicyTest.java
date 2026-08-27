@@ -22,7 +22,7 @@ public class McpSecurityPolicyTest {
     void testPoliciesLoadedFromSeedJsonAndDatabase() {
         List<McpSecurityPolicy> policies = policyProvider.getAllPolicies();
         assertNotNull(policies);
-        assertEquals(17, policies.size());
+        assertEquals(23, policies.size());
 
         McpSecurityPolicy profilePolicy = policyProvider.getPolicy("customer.profile.read");
         assertNotNull(profilePolicy);

@@ -43,7 +43,7 @@ public class McpServerTest {
 
         Map<?, ?> result = (Map<?, ?>) res.getResult();
         List<?> tools = (List<?>) result.get("tools");
-        assertEquals(17, tools.size());
+        assertEquals(23, tools.size());
     }
 
     @Test

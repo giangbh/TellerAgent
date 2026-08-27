@@ -44,7 +44,16 @@ public class AgentSuite {
             if (entities.get("amount") != null) args.put("amount", entities.get("amount"));
         } else if ("branch.directory.lookup".equals(capabilityId)) {
             args.put("city", entities.getOrDefault("city", "Hà Nội"));
-        } else if ("customer.accounts.summary".equals(capabilityId) || "customer.profile.read".equals(capabilityId) || "customer.accounts.list".equals(capabilityId)) {
+        } else if ("customer.accounts.summary".equals(capabilityId) || "customer.profile.read".equals(capabilityId)
+                || "customer.accounts.list".equals(capabilityId) || "customer.persona.analytics".equals(capabilityId)
+                || "customer.credit.score.check".equals(capabilityId) || "recommendation.nbo.products".equals(capabilityId)
+                || "card.service.manage".equals(capabilityId)) {
+            args.put("customerRef", customerRef);
+        } else if ("savings.product.advisor".equals(capabilityId)) {
+            args.put("amount", entities.getOrDefault("amount", 100_000_000L));
+            args.put("termMonths", entities.getOrDefault("termMonths", 6));
+        } else if ("statement.transaction.history".equals(capabilityId)) {
+            args.put("accountNumber", entities.getOrDefault("accountNumber", entities.getOrDefault("beneficiaryAccount", "3456789")));
             args.put("customerRef", customerRef);
         } else if ("pricing.transfer.fee".equals(capabilityId)) {
             args.put("amount", entities.getOrDefault("amount", 50_000_000L));

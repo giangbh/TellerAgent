@@ -25,7 +25,7 @@ public class DeepSeekIntegrationTest {
     void testToolsManifestGenerationMatchesOpenAiSchema() {
         List<Map<String, Object>> tools = deepSeekClient.buildToolsManifest();
         assertNotNull(tools);
-        assertEquals(17, tools.size());
+        assertEquals(23, tools.size());
 
         Map<String, Object> firstTool = tools.get(0);
         assertEquals("function", firstTool.get("type"));

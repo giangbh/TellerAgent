@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.DecimalFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -38,7 +39,6 @@ public class MockBankingDataService {
     }
 
     public synchronized void seedDefaultCustomer() {
-        // Ensure default test customer CIF-0001842 and account 3456789 exist
         String defaultCif = "CIF-0001842";
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM mock_customers WHERE cif = ?", Integer.class, defaultCif);
 
@@ -165,6 +165,197 @@ public class MockBankingDataService {
         return result;
     }
 
+    public Map<String, Object> getCustomerPersona(String customerRef) {
+        String cif = normalizeCif(customerRef);
+        ensureCustomerExists(cif);
+        Map<String, Object> profile = getCustomerProfile(cif);
+
+        Random rng = new Random(cif.hashCode() + 101);
+        int age = 28 + Math.abs(rng.nextInt() % 35);
+        int tenureMonths = 12 + Math.abs(rng.nextInt() % 72);
+        int monthlyTxCount = 15 + Math.abs(rng.nextInt() % 45);
+
+        List<String> personas = List.of(
+            "Nhà đầu tư tích lũy & Tiết kiệm thông minh",
+            "Doanh nhân / Chủ hộ kinh doanh vừa và nhỏ",
+            "Chuyên viên công nghệ & Người tiêu dùng số",
+            "Khách hàng cao cấp ưa chuộng tiện ích đặc quyền"
+        );
+        String persona = personas.get(Math.abs(rng.nextInt()) % personas.size());
+        String channel = rng.nextBoolean() ? "Mobile Banking (85%)" : "Quầy giao dịch & Thẻ (60%)";
+        String riskAppetite = "PRIORITY".equals(profile.get("segment")) || "DIAMOND_VIP".equals(profile.get("segment")) ? "TĂNG TRƯỞNG & ĐẦU TƯ" : "THẬN TRỌNG & BẢO TOÀN VỐN";
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("customerRef", cif);
+        res.put("customerName", profile.get("displayName"));
+        res.put("segment", profile.get("segment"));
+        res.put("estimatedAge", age);
+        res.put("relationshipTenure", tenureMonths + " tháng");
+        res.put("monthlyTxFrequency", monthlyTxCount + " giao dịch/tháng");
+        res.put("personaCategory", persona);
+        res.put("preferredChannel", channel);
+        res.put("investmentRiskAppetite", riskAppetite);
+        res.put("summary", String.format("Chân dung KH %s (%s): Nhóm '%s', gắn bó %d tháng, kênh ưa chuộng: %s, khẩu vị: %s.",
+            profile.get("displayName"), profile.get("segment"), persona, tenureMonths, channel, riskAppetite));
+
+        return res;
+    }
+
+    public Map<String, Object> getCustomerCreditScore(String customerRef) {
+        String cif = normalizeCif(customerRef);
+        ensureCustomerExists(cif);
+        Map<String, Object> profile = getCustomerProfile(cif);
+
+        Random rng = new Random(cif.hashCode() + 202);
+        int score = 680 + Math.abs(rng.nextInt() % 140); // 680 - 820
+        String cicGroup = "Nhóm 1 (Dư nợ chuẩn, không có lịch sử nợ xấu)";
+        long preApprovedLimit = "DIAMOND_VIP".equals(profile.get("segment")) ? 500_000_000L
+            : ("PRIORITY".equals(profile.get("segment")) ? 200_000_000L : 50_000_000L);
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("customerRef", cif);
+        res.put("customerName", profile.get("displayName"));
+        res.put("creditScore", score);
+        res.put("creditRatingGrade", score >= 750 ? "AAA (Xuất sắc)" : "AA (Tốt)");
+        res.put("cicStatus", cicGroup);
+        res.put("preApprovedLoanLimit", preApprovedLimit);
+        res.put("overdraftEligible", true);
+        res.put("summary", String.format("Tín dụng KH %s: Điểm tín nhiệm %d/850 (%s), CIC: %s, Hạn mức vay phê duyệt trước: %s VND.",
+            profile.get("displayName"), score, res.get("creditRatingGrade"), cicGroup, formatMoney(preApprovedLimit)));
+
+        return res;
+    }
+
+    public Map<String, Object> getNextBestOffers(String customerRef) {
+        String cif = normalizeCif(customerRef);
+        ensureCustomerExists(cif);
+        Map<String, Object> profile = getCustomerProfile(cif);
+
+        List<Map<String, Object>> offers = new ArrayList<>();
+        offers.add(Map.of(
+            "productCode", "CARD-CASHBACK-SIGNATURE",
+            "productName", "Thẻ Tín Dụng B.Smart Signature Cashback",
+            "benefit", "Hoàn tiền 10% chi tiêu ẩm thực, phòng chờ thương gia sân bay không giới hạn",
+            "priorityScore", 0.95
+        ));
+        offers.add(Map.of(
+            "productCode", "SAVINGS-ACCUMULATIVE-6M",
+            "productName", "Gói Tiền Gửi Đắc Lộc 6 Tháng Lãi Suất 6.2%/năm",
+            "benefit", "Tặng 0.3%/năm lãi suất thưởng cho phân hạng " + profile.get("segment"),
+            "priorityScore", 0.91
+        ));
+        offers.add(Map.of(
+            "productCode", "OVERDRAFT-LINE-FAST",
+            "productName", "Hạn Mức Thấu Chi Tài Khoản Trực Tuyến",
+            "benefit", "Cấp sẵn hạn mức 100-300 triệu VND, miễn lãi 15 ngày đầu",
+            "priorityScore", 0.88
+        ));
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("customerRef", cif);
+        res.put("customerName", profile.get("displayName"));
+        res.put("segment", profile.get("segment"));
+        res.put("offers", offers);
+        res.put("summary", String.format("Top 3 Offer tư vấn cho KH %s (%s): 1) Thẻ Signature Cashback 10%% · 2) Tiết kiệm Đắc Lộc 6.2%% · 3) Thấu chi miễn lãi 15 ngày.",
+            profile.get("displayName"), profile.get("segment")));
+
+        return res;
+    }
+
+    public Map<String, Object> adviseSavingsPlan(Long amount, Integer termMonths) {
+        long baseAmount = amount != null && amount > 0 ? amount : 100_000_000L;
+        int term = termMonths != null && termMonths > 0 ? termMonths : 6;
+
+        Map<Integer, Double> rateTable = Map.of(
+            1, 3.2,
+            3, 4.2,
+            6, 5.6,
+            12, 6.0,
+            24, 6.3
+        );
+
+        double rate = rateTable.getOrDefault(term, 5.6);
+        long interestEarned = Math.round(baseAmount * (rate / 100.0) * (term / 12.0));
+        long totalMaturity = baseAmount + interestEarned;
+
+        List<Map<String, Object>> comparison = new ArrayList<>();
+        for (Map.Entry<Integer, Double> e : rateTable.entrySet()) {
+            int t = e.getKey();
+            double r = e.getValue();
+            long earned = Math.round(baseAmount * (r / 100.0) * (t / 12.0));
+            comparison.add(Map.of("termMonths", t, "rate", r, "interestEarned", earned, "totalAtMaturity", baseAmount + earned));
+        }
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("depositAmount", baseAmount);
+        res.put("selectedTermMonths", term);
+        res.put("interestRate", rate);
+        res.put("estimatedInterestEarned", interestEarned);
+        res.put("totalAtMaturity", totalMaturity);
+        res.put("allTermsComparison", comparison);
+        res.put("summary", String.format("Gửi %s VND kỳ hạn %d tháng (Lãi suất %.1f%%/năm) ➔ Tiền lãi dự kiến: %s VND (Tổng nhận khi đáo hạn: %s VND).",
+            formatMoney(baseAmount), term, rate, formatMoney(interestEarned), formatMoney(totalMaturity)));
+
+        return res;
+    }
+
+    public Map<String, Object> getCardServices(String customerRef) {
+        String cif = normalizeCif(customerRef);
+        ensureCustomerExists(cif);
+        Map<String, Object> profile = getCustomerProfile(cif);
+
+        List<Map<String, Object>> cards = new ArrayList<>();
+        cards.add(Map.of(
+            "cardRef", "CRD-VISA-01",
+            "cardType", "CREDIT_VISA_PLATINUM",
+            "cardNumberMasked", "4000 •••• •••• 8866",
+            "status", "ACTIVE",
+            "creditLimit", 100_000_000L,
+            "availableLimit", 82_400_000L,
+            "ecomEnabled", true,
+            "contactlessEnabled", true
+        ));
+        cards.add(Map.of(
+            "cardRef", "CRD-NAPAS-02",
+            "cardType", "DEBIT_NAPAS_DOMESTIC",
+            "cardNumberMasked", "9704 •••• •••• 3489",
+            "status", "ACTIVE",
+            "dailyAtmWithdrawalLimit", 50_000_000L,
+            "ecomEnabled", true,
+            "contactlessEnabled", true
+        ));
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("customerRef", cif);
+        res.put("customerName", profile.get("displayName"));
+        res.put("cards", cards);
+        res.put("summary", String.format("Khách hàng %s có 2 thẻ hoạt động: 1 Thẻ tín dụng Visa Platinum (hạn mức 100 tr, khả dụng 82,4 tr) và 1 Thẻ ghi nợ Napas.",
+            profile.get("displayName")));
+
+        return res;
+    }
+
+    public Map<String, Object> getTransactionHistory(String accountNumber, String customerRef) {
+        String num = accountNumber != null && !accountNumber.trim().isEmpty() ? accountNumber.trim() : "3456789";
+        String cif = normalizeCif(customerRef);
+
+        List<Map<String, Object>> txs = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        txs.add(Map.of("txId", "TX-9901", "date", today.minusDays(1).toString(), "description", "Nhận tiền chuyển khoản từ CTY TNHH ABC (Lương T8)", "amount", 45_000_000L, "type", "INFLOW", "balanceAfter", 250_000_000L));
+        txs.add(Map.of("txId", "TX-9902", "date", today.minusDays(3).toString(), "description", "Thanh toán QR POS siêu thị WinMart+", "amount", -1_850_000L, "type", "OUTFLOW", "balanceAfter", 205_000_000L));
+        txs.add(Map.of("txId", "TX-9903", "date", today.minusDays(5).toString(), "description", "Chuyển tiền nhanh 24/7 đến Tran Thi Lan", "amount", -5_000_000L, "type", "OUTFLOW", "balanceAfter", 206_850_000L));
+        txs.add(Map.of("txId", "TX-9904", "date", today.minusDays(8).toString(), "description", "Tiền lãi tiết kiệm định kỳ", "amount", 7_250_000L, "type", "INFLOW", "balanceAfter", 211_850_000L));
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("accountNumber", num);
+        res.put("customerRef", cif);
+        res.put("transactions", txs);
+        res.put("summary", String.format("Sao kê gần nhất tài khoản %s: 4 giao dịch (Tổng tiền vào: +52,25 tr VND, Tổng chi tiêu: -6,85 tr VND, Số dư hiện tại: 250 tr VND).", num));
+
+        return res;
+    }
+
     public Map<String, Object> resolveAccount(String accountNumber) {
         String num = accountNumber != null ? accountNumber.trim() : "3456789";
 
@@ -188,7 +379,7 @@ public class MockBankingDataService {
             return list.get(0);
         }
 
-        // If account not found in DB, auto-generate synthetic account & customer for this number
+        // Auto-generate synthetic account & customer for this number
         String syntheticCif = "CIF-" + Math.abs(num.hashCode() % 100000);
         ensureCustomerExists(syntheticCif);
 
@@ -207,7 +398,6 @@ public class MockBankingDataService {
             return;
         }
 
-        // Generate synthetic customer seeded by CIF string
         Random rng = new Random(cif.hashCode());
         String surname = SURNAMES.get(Math.abs(rng.nextInt()) % SURNAMES.size());
         String given = GIVEN_NAMES.get(Math.abs(rng.nextInt()) % GIVEN_NAMES.size());
