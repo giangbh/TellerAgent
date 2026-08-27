@@ -104,6 +104,9 @@ public class Session {
         private String role;
         private String text;
         private String at;
+        private List<String> thinkingSteps = new ArrayList<>();
+        private Long thinkingTimeMs;
+        private String reasoningMode;
 
         public ChatMessage() {}
         public ChatMessage(String role, String text, String at) {
@@ -112,11 +115,29 @@ public class Session {
             this.at = at;
         }
 
+        public ChatMessage(String role, String text, String at, List<String> thinkingSteps, Long thinkingTimeMs, String reasoningMode) {
+            this.role = role;
+            this.text = text;
+            this.at = at;
+            this.thinkingSteps = thinkingSteps != null ? thinkingSteps : new ArrayList<>();
+            this.thinkingTimeMs = thinkingTimeMs;
+            this.reasoningMode = reasoningMode;
+        }
+
         public String getRole() { return role; }
         public void setRole(String role) { this.role = role; }
         public String getText() { return text; }
         public void setText(String text) { this.text = text; }
         public String getAt() { return at; }
         public void setAt(String at) { this.at = at; }
+
+        public List<String> getThinkingSteps() { return thinkingSteps; }
+        public void setThinkingSteps(List<String> thinkingSteps) { this.thinkingSteps = thinkingSteps; }
+
+        public Long getThinkingTimeMs() { return thinkingTimeMs; }
+        public void setThinkingTimeMs(Long thinkingTimeMs) { this.thinkingTimeMs = thinkingTimeMs; }
+
+        public String getReasoningMode() { return reasoningMode; }
+        public void setReasoningMode(String reasoningMode) { this.reasoningMode = reasoningMode; }
     }
 }

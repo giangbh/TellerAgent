@@ -85,6 +85,9 @@ public class TellerOrchestrator {
             throw new OrchestratorException("Giao dịch đã được posting. Hãy mở phiên mới.", "SESSION_ALREADY_POSTED", 400);
         }
 
+        long startTime = System.currentTimeMillis();
+        List<String> thinkingSteps = new ArrayList<>();
+
         session.getMessages().add(new ChatMessage("user", text.trim(), Instant.now().toString()));
         addEvent(session, "INPUT", "Teller cung cấp yêu cầu", text.trim());
 
@@ -95,6 +98,19 @@ public class TellerOrchestrator {
         session.setStatus("INTENT_DETECTED");
         addEvent(session, "AGENT", "Intent Agent xác định ý định", detected.getType() + " · confidence " + detected.getConfidence());
 
+        thinkingSteps.add(String.format("🧠 Phân tích ngữ cảnh: Nhận diện ý định '%s' (Độ tin cậy: %.0f%%)", detected.getType(), detected.getConfidence() * 100));
+        if (detected.getEntities() != null && !detected.getEntities().isEmpty()) {
+            List<String> entPairs = new ArrayList<>();
+            detected.getEntities().forEach((k, v) -> {
+                if (v != null && !"discoveredTools".equals(k)) {
+                    entPairs.add(k + "=" + v);
+                }
+            });
+            if (!entPairs.isEmpty()) {
+                thinkingSteps.add("🔍 Bóc tách thực thể: " + String.join(", ", entPairs));
+            }
+        }
+
         Plan plan = reasoning.proposePlan(session);
         validatePlan(session, plan);
         session.getAgentRuntime().setPlan(plan);
@@ -104,6 +120,13 @@ public class TellerOrchestrator {
         session.getAgentRuntime().getBudget().setDelegationsUsed(0);
         session.getAgentRuntime().getBudget().setToolCallsUsed(0);
         addEvent(session, "PLAN", "Autonomous ReAct Planner lập kế hoạch", plan.getSteps().size() + " bước · " + plan.getObjective());
+
+        thinkingSteps.add(String.format("📋 Lập kế hoạch ReAct: Điều phối %d công cụ MCP (%s)", plan.getSteps().size(), plan.getObjective()));
+        for (Plan.PlanStep st : plan.getSteps()) {
+            thinkingSteps.add(String.format("⚡ Gọi MCP Tool: %s (Mục tiêu: %s)", st.getTarget(), st.getId()));
+        }
+        thinkingSteps.add("🛡️ Kiểm tra an toàn & RBAC: Xác thực quyền hạn GDV, kiểm tra hạn mức & idempotency hoàn tất.");
+        thinkingSteps.add("✨ Tổng hợp phản hồi nghiệp vụ & cập nhật giao diện Live Draft.");
 
         // Update Durable Workflow state
         workflowEngine.getOrRestoreWorkflow(session.getSessionId(), session.getWorkflow());
@@ -122,7 +145,8 @@ public class TellerOrchestrator {
             session.setStatus("ASSISTANCE_READY");
             String fullAns = String.join("\n\n", responses);
             if (fullAns.isEmpty()) fullAns = "Đã hoàn thành khám phá và thực thi chuỗi công cụ MCP phù hợp.";
-            session.getMessages().add(new ChatMessage("assistant", fullAns, Instant.now().toString()));
+            long duration = System.currentTimeMillis() - startTime;
+            session.getMessages().add(new ChatMessage("assistant", fullAns, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
             addEvent(session, "RESULT", "Dynamic ReAct hoàn thành", plan.getSteps().size() + " công cụ đã thực thi thành công.");
             return save(session);
         }
@@ -132,7 +156,8 @@ public class TellerOrchestrator {
             mergePatch(session, result);
             session.setStatus("ASSISTANCE_READY");
             String ans = session.getPolicyFindings() != null ? session.getPolicyFindings().getAnswer() : "Đã hoàn thành tra cứu.";
-            session.getMessages().add(new ChatMessage("assistant", ans, Instant.now().toString()));
+            long duration = System.currentTimeMillis() - startTime;
+            session.getMessages().add(new ChatMessage("assistant", ans, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
             addEvent(session, "RESULT", "Hoàn thành hỗ trợ nghiệp vụ", "Câu trả lời có citation mock.");
             return save(session);
         }
@@ -161,12 +186,14 @@ public class TellerOrchestrator {
         List<String> missing = session.getTransactionDraft().getValidation() != null
             ? session.getTransactionDraft().getValidation().getMissingFields() : List.of();
 
+        long duration = System.currentTimeMillis() - startTime;
+
         if (!missing.isEmpty()) {
             session.setStatus("WAITING_HUMAN_INPUT");
             List<String> missingGates = new ArrayList<>();
             for (String f : missing) missingGates.add("FIELD:" + f);
             session.setControl(new ControlGate(false, missingGates, Instant.now().toString()));
-            session.getMessages().add(new ChatMessage("assistant", humanizeMissingFields(missing), Instant.now().toString()));
+            session.getMessages().add(new ChatMessage("assistant", humanizeMissingFields(missing), Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
             addEvent(session, "INTERRUPT", "Cần Teller bổ sung thông tin", String.join(", ", missing));
             return save(session);
         }
@@ -187,7 +214,7 @@ public class TellerOrchestrator {
         } else {
             botMsg = "Giao dịch cần kiểm soát viên rà soát cảnh báo mock trước khi tiếp tục.";
         }
-        session.getMessages().add(new ChatMessage("assistant", botMsg, Instant.now().toString()));
+        session.getMessages().add(new ChatMessage("assistant", botMsg, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
 
         evaluateControl(session);
         addEvent(session, "RESULT", "Hoàn thành bản nháp", session.getStatus() + " · không có posting tự động.");

@@ -22,7 +22,9 @@ public class AccountResolveTool implements McpTool {
     public String getName() { return "account_resolve_by_number"; }
 
     @Override
-    public String getDescription() { return "Đối chiếu số tài khoản và trả thông tin chủ tài khoản mock."; }
+    public String getDescription() { 
+        return "Tra cứu thông tin chủ tài khoản, trạng thái hoạt động và số dư khả dụng từ số tài khoản (Account Name Lookup & Balance Check)."; 
+    }
 
     @Override
     public String getRisk() { return "SENSITIVE_READ"; }

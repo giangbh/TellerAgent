@@ -2,6 +2,9 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   text: string;
   at: string;
+  thinkingSteps?: string[];
+  thinkingTimeMs?: number;
+  reasoningMode?: string;
 }
 
 export interface Intent {

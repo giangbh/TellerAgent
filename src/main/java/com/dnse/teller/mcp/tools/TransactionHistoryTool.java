@@ -22,7 +22,9 @@ public class TransactionHistoryTool implements McpTool {
     public String getName() { return "statement_transaction_history"; }
 
     @Override
-    public String getDescription() { return "Trích lục lịch sử giao dịch sao kê, phân loại dòng tiền vào/ra (Inflow/Outflow)."; }
+    public String getDescription() { 
+        return "Tra cứu và in trích lục lịch sử giao dịch sao kê, biến động số dư, thống kê dòng tiền thu/chi (Inflow/Outflow) của tài khoản ngân hàng hoặc mã CIF khách hàng (Statement & Transaction History). Dùng khi GDV yêu cầu in sao kê, tra cứu lịch sử giao dịch, kiểm tra tiền vào/tiền ra."; 
+    }
 
     @Override
     public String getRisk() { return "SENSITIVE_READ"; }
@@ -48,7 +50,7 @@ public class TransactionHistoryTool implements McpTool {
         return Map.of(
             "type", "object",
             "properties", Map.of(
-                "accountNumber", Map.of("type", "string", "description", "Số tài khoản cần in sao kê"),
+                "accountNumber", Map.of("type", "string", "description", "Số tài khoản ngân hàng cần in sao kê lịch sử giao dịch"),
                 "customerRef", Map.of("type", "string", "description", "Mã CIF khách hàng")
             )
         );
