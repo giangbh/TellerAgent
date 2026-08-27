@@ -107,6 +107,7 @@ public class Session {
         private List<String> thinkingSteps = new ArrayList<>();
         private Long thinkingTimeMs;
         private String reasoningMode;
+        private String traceId;
 
         public ChatMessage() {}
         public ChatMessage(String role, String text, String at) {
@@ -116,12 +117,17 @@ public class Session {
         }
 
         public ChatMessage(String role, String text, String at, List<String> thinkingSteps, Long thinkingTimeMs, String reasoningMode) {
+            this(role, text, at, thinkingSteps, thinkingTimeMs, reasoningMode, null);
+        }
+
+        public ChatMessage(String role, String text, String at, List<String> thinkingSteps, Long thinkingTimeMs, String reasoningMode, String traceId) {
             this.role = role;
             this.text = text;
             this.at = at;
             this.thinkingSteps = thinkingSteps != null ? thinkingSteps : new ArrayList<>();
             this.thinkingTimeMs = thinkingTimeMs;
             this.reasoningMode = reasoningMode;
+            this.traceId = traceId;
         }
 
         public String getRole() { return role; }
@@ -139,5 +145,8 @@ public class Session {
 
         public String getReasoningMode() { return reasoningMode; }
         public void setReasoningMode(String reasoningMode) { this.reasoningMode = reasoningMode; }
+
+        public String getTraceId() { return traceId; }
+        public void setTraceId(String traceId) { this.traceId = traceId; }
     }
 }

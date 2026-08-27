@@ -9,6 +9,9 @@ import com.dnse.teller.model.Session.ChatMessage;
 import com.dnse.teller.orchestrator.AgentSuite.AgentResult;
 import com.dnse.teller.persistence.WorkflowRepository;
 import com.dnse.teller.workflow.WorkflowEngine;
+import com.dnse.teller.observability.OpenTelemetryTracer;
+import com.dnse.teller.observability.TraceContext;
+import com.dnse.teller.observability.TraceSpan;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -23,6 +26,7 @@ public class TellerOrchestrator {
     private final AgentSuite agentSuite;
     private final WorkflowRepository repository;
     private final WorkflowEngine workflowEngine;
+    private final OpenTelemetryTracer tracer;
     private final Map<String, Session> sessionCache = new ConcurrentHashMap<>();
 
     private static final Map<String, List<String>> ALLOWED_DELEGATIONS = Map.of(
@@ -38,7 +42,8 @@ public class TellerOrchestrator {
             ReasoningEngine reasoning,
             AgentSuite agentSuite,
             WorkflowRepository repository,
-            WorkflowEngine workflowEngine
+            WorkflowEngine workflowEngine,
+            OpenTelemetryTracer tracer
     ) {
         this.mcpServer = mcpServer;
         this.toolRegistry = toolRegistry;
@@ -46,6 +51,7 @@ public class TellerOrchestrator {
         this.agentSuite = agentSuite;
         this.repository = repository;
         this.workflowEngine = workflowEngine;
+        this.tracer = tracer;
     }
 
     public Session createSession(Map<String, Object> input) {
@@ -86,12 +92,20 @@ public class TellerOrchestrator {
         }
 
         long startTime = System.currentTimeMillis();
+        TraceContext traceContext = tracer.startTrace(sessionId, "process_message");
+        String currentTraceId = traceContext.getTraceId();
         List<String> thinkingSteps = new ArrayList<>();
 
         session.getMessages().add(new ChatMessage("user", text.trim(), Instant.now().toString()));
         addEvent(session, "INPUT", "Teller cung cấp yêu cầu", text.trim());
 
+        // Span 1: Intent Detection
+        TraceSpan spanIntent = tracer.startSpan("intent_detection", null);
         Intent detected = reasoning.detectIntent(text, session.getIntent());
+        spanIntent.addAttribute("detectedIntent", detected.getType());
+        spanIntent.addAttribute("confidence", detected.getConfidence());
+        tracer.endSpan(spanIntent);
+
         session.setIntent(detected);
         session.setWorkflow(detected.getWorkflow());
         session.setWorkflowVersion("domestic_transfer".equals(session.getWorkflow()) ? "3.2-poc" : "2.0-dynamic");
@@ -111,8 +125,13 @@ public class TellerOrchestrator {
             }
         }
 
+        // Span 2: ReAct Planning
+        TraceSpan spanPlan = tracer.startSpan("react_planning", null);
         Plan plan = reasoning.proposePlan(session);
         validatePlan(session, plan);
+        spanPlan.addAttribute("planStepsCount", plan.getSteps().size());
+        tracer.endSpan(spanPlan);
+
         session.getAgentRuntime().setPlan(plan);
         session.getAgentRuntime().setCompletedSteps(new ArrayList<>());
         session.getAgentRuntime().setDelegations(new ArrayList<>());
@@ -137,6 +156,7 @@ public class TellerOrchestrator {
             Map<String, Object> allToolOutputs = new LinkedHashMap<>();
 
             for (Plan.PlanStep step : plan.getSteps()) {
+                TraceSpan spanTool = tracer.startSpan("mcp_tool:" + step.getTarget(), null);
                 AgentResult result = delegate(session, step.getTarget(), step.getId());
                 mergePatch(session, result);
                 if (result.getWrites() != null) {
@@ -145,30 +165,39 @@ public class TellerOrchestrator {
                 if (session.getPolicyFindings() != null && session.getPolicyFindings().getAnswer() != null) {
                     responses.add(session.getPolicyFindings().getAnswer());
                 }
+                tracer.endSpan(spanTool);
             }
 
             session.setStatus("ASSISTANCE_READY");
 
-            // Allow DeepSeek AI to synthesize and calculate intelligent response from raw tool outputs
+            // Span: LLM Reasoning Synthesis
+            TraceSpan spanSynth = tracer.startSpan("llm_reasoning_synthesis", null);
             Optional<String> aiSynthesis = reasoning.synthesizeAnswer(text, allToolOutputs);
+            tracer.endSpan(spanSynth);
+
             String fullAns = aiSynthesis.orElseGet(() -> {
                 String fallback = String.join("\n\n", responses);
                 return fallback.isEmpty() ? "Đã hoàn thành khám phá và thực thi chuỗi công cụ MCP phù hợp." : fallback;
             });
 
             long duration = System.currentTimeMillis() - startTime;
-            session.getMessages().add(new ChatMessage("assistant", fullAns, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
+            tracer.endTrace();
+            session.getMessages().add(new ChatMessage("assistant", fullAns, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
             addEvent(session, "RESULT", "Dynamic ReAct hoàn thành", plan.getSteps().size() + " công cụ đã thực thi thành công.");
             return save(session);
         }
 
         if ("policy_assistance".equals(session.getWorkflow())) {
+            TraceSpan spanPolicy = tracer.startSpan("policy_agent", null);
             AgentResult result = delegate(session, "policy_agent", "S1");
             mergePatch(session, result);
+            tracer.endSpan(spanPolicy);
+
             session.setStatus("ASSISTANCE_READY");
             String ans = session.getPolicyFindings() != null ? session.getPolicyFindings().getAnswer() : "Đã hoàn thành tra cứu.";
             long duration = System.currentTimeMillis() - startTime;
-            session.getMessages().add(new ChatMessage("assistant", ans, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
+            tracer.endTrace();
+            session.getMessages().add(new ChatMessage("assistant", ans, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
             addEvent(session, "RESULT", "Hoàn thành hỗ trợ nghiệp vụ", "Câu trả lời có citation mock.");
             return save(session);
         }
@@ -204,7 +233,8 @@ public class TellerOrchestrator {
             List<String> missingGates = new ArrayList<>();
             for (String f : missing) missingGates.add("FIELD:" + f);
             session.setControl(new ControlGate(false, missingGates, Instant.now().toString()));
-            session.getMessages().add(new ChatMessage("assistant", humanizeMissingFields(missing), Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
+            tracer.endTrace();
+            session.getMessages().add(new ChatMessage("assistant", humanizeMissingFields(missing), Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
             addEvent(session, "INTERRUPT", "Cần Teller bổ sung thông tin", String.join(", ", missing));
             return save(session);
         }
@@ -225,7 +255,8 @@ public class TellerOrchestrator {
         } else {
             botMsg = "Giao dịch cần kiểm soát viên rà soát cảnh báo mock trước khi tiếp tục.";
         }
-        session.getMessages().add(new ChatMessage("assistant", botMsg, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING"));
+        tracer.endTrace();
+        session.getMessages().add(new ChatMessage("assistant", botMsg, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
 
         evaluateControl(session);
         addEvent(session, "RESULT", "Hoàn thành bản nháp", session.getStatus() + " · không có posting tự động.");

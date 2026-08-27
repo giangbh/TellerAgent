@@ -5,6 +5,45 @@ export interface ChatMessage {
   thinkingSteps?: string[];
   thinkingTimeMs?: number;
   reasoningMode?: string;
+  traceId?: string;
+}
+
+export interface TraceSpan {
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  startTimeMs: number;
+  endTimeMs: number;
+  durationMs: number;
+  status: string;
+  attributes?: Record<string, unknown>;
+}
+
+export interface TraceContext {
+  traceId: string;
+  sessionId: string;
+  rootOperation: string;
+  startTimeMs: number;
+  endTimeMs: number;
+  totalDurationMs: number;
+  status: string;
+  spans: TraceSpan[];
+}
+
+export interface EvaluationJudgeResult {
+  evaluationId: string;
+  sessionId: string;
+  traceId?: string;
+  overallScore: number;
+  hallucinationScore: number;
+  politenessScore: number;
+  complianceScore: number;
+  latencyScore: number;
+  latencyMs: number;
+  verdict: 'PASS' | 'WARNING' | 'FAIL';
+  critique: string;
+  evaluatedAt: string;
+  judgeModel: string;
 }
 
 export interface Intent {

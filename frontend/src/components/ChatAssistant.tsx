@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Brain, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Brain, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
 import { ChatMessage, Intent } from '../types/teller';
+import { ObservabilityModal } from './ObservabilityModal';
 
 interface ChatAssistantProps {
   messages: ChatMessage[];
@@ -21,6 +22,9 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
   const [inputText, setInputText] = useState('');
   const [expandedThinking, setExpandedThinking] = useState<Record<number, boolean>>({});
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
+  const [obsModalOpen, setObsModalOpen] = useState(false);
+  const [selectedObsMsg, setSelectedObsMsg] = useState<ChatMessage | null>(null);
+  const [selectedObsUserPrompt, setSelectedObsUserPrompt] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,73 +53,61 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
     }
   }, [messages]);
 
-  const toggleThinking = (index: number) => {
-    setExpandedThinking(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
+  const handleOpenObservability = (msg: ChatMessage, idx: number) => {
+    let prompt = '';
+    for (let i = idx - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        prompt = messages[i].text;
+        break;
+      }
+    }
+    setSelectedObsMsg(msg);
+    setSelectedObsUserPrompt(prompt);
+    setObsModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || loading) return;
-    onSendMessage(inputText.trim());
+    onSendMessage(inputText);
     setInputText('');
   };
 
+  const toggleThinking = (idx: number) => {
+    setExpandedThinking((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
   return (
-    <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '620px' }}>
+    <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0', overflow: 'hidden' }}>
       
       {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Bot size={18} color="#fff" />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: 700 }}>AI Teller Copilot</h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>DeepSeek AI & 23 MCP Tools</p>
-          </div>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Bot size={18} color="var(--primary-light)" />
+          <h3 style={{ margin: '0', fontSize: '1rem', fontWeight: '600' }}>AI Teller Copilot</h3>
+          <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>DeepSeek-R1 Active</span>
         </div>
-
         {intent && (
-          <div style={{ textAlign: 'right' }}>
-            <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
-              {intent.type}
-            </span>
-            <div style={{ fontSize: '0.675rem', color: 'var(--text-dim)', marginTop: '2px' }}>
-              Độ tin cậy: {(intent.confidence * 100).toFixed(0)}%
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+            <Sparkles size={12} color="var(--warning)" />
+            <span>Workflow: <strong>{intent.workflow}</strong></span>
           </div>
         )}
       </div>
 
-      {/* Messages Feed */}
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Messages List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {messages.length === 0 && (
-          <div style={{ textAlign: 'center', color: 'var(--text-dim)', marginTop: '60px', padding: '0 20px' }}>
-            <Sparkles size={36} color="#8b5cf6" style={{ margin: '0 auto 12px', opacity: 0.6 }} />
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
-              Sẵn sàng hỗ trợ Giao dịch viên
-            </h3>
-            <p style={{ fontSize: '0.8rem', lineHeight: '1.5' }}>
-              Nhập yêu cầu của khách hàng bằng tiếng Việt tự nhiên hoặc chọn kịch bản mẫu ở trên.
-            </p>
+          <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '40px 0' }}>
+            <Bot size={40} style={{ margin: '0 auto 12px', opacity: '0.3' }} />
+            <p style={{ margin: 0, fontSize: '0.875rem' }}>Chào GDV! Hãy nhập yêu cầu của khách hàng hoặc click kịch bản mẫu bên trái để tôi hỗ trợ tự động.</p>
           </div>
         )}
 
         {messages.map((msg, index) => {
           const isUser = msg.role === 'user';
-          const hasThinking = !isUser && msg.thinkingSteps && msg.thinkingSteps.length > 0;
-          const isThinkingOpen = expandedThinking[index] ?? false;
+          const hasThinking = msg.thinkingSteps && msg.thinkingSteps.length > 0;
+          const isExpanded = expandedThinking[index] !== undefined ? expandedThinking[index] : true;
 
           return (
             <div
@@ -178,35 +170,34 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
                         <span>Quá trình suy nghĩ</span>
                         {msg.thinkingTimeMs && (
                           <span style={{
+                            fontSize: '0.675rem',
+                            color: '#a78bfa',
+                            background: 'rgba(139, 92, 246, 0.2)',
                             padding: '1px 6px',
                             borderRadius: '4px',
-                            background: 'rgba(139, 92, 246, 0.2)',
-                            color: '#e9d5ff',
-                            fontSize: '0.675rem',
-                            fontWeight: 500
+                            fontWeight: 400,
+                            marginLeft: '4px'
                           }}>
-                            {msg.thinkingTimeMs > 1000 ? `${(msg.thinkingTimeMs / 1000).toFixed(1)}s` : `${msg.thinkingTimeMs}ms`}
+                            {msg.thinkingTimeMs < 1000 ? `${msg.thinkingTimeMs}ms` : `${(msg.thinkingTimeMs / 1000).toFixed(1)}s`}
                           </span>
                         )}
                       </div>
-                      {isThinkingOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </button>
 
-                    {isThinkingOpen && (
+                    {isExpanded && (
                       <div style={{
-                        padding: '10px 14px 12px',
+                        padding: '8px 12px 10px 12px',
                         borderTop: '1px solid rgba(139, 92, 246, 0.15)',
                         fontSize: '0.75rem',
-                        color: 'var(--text-muted)',
+                        color: '#cbd5e1',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '6px',
                         lineHeight: '1.4',
-                        background: 'rgba(0, 0, 0, 0.2)',
                       }}>
                         {msg.thinkingSteps!.map((step, sIdx) => (
                           <div key={sIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                            <span style={{ color: '#a855f7', marginTop: '1px' }}>•</span>
                             <span>{step}</span>
                           </div>
                         ))}
@@ -230,8 +221,44 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
                   whiteSpace: 'pre-line',
                 }}>
                   {msg.text}
-                  <div style={{ fontSize: '0.675rem', color: isUser ? 'rgba(255,255,255,0.6)' : 'var(--text-dim)', marginTop: '6px', textAlign: isUser ? 'right' : 'left' }}>
-                    {new Date(msg.at).toLocaleTimeString('vi-VN')}
+                  
+                  {/* Message Footer with Timestamp & AI Judge Button */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isUser ? 'flex-end' : 'space-between',
+                    marginTop: '8px',
+                    paddingTop: '6px',
+                    borderTop: isUser ? 'none' : '1px solid rgba(255, 255, 255, 0.05)'
+                  }}>
+                    <div style={{ fontSize: '0.675rem', color: isUser ? 'rgba(255,255,255,0.6)' : 'var(--text-dim)' }}>
+                      {new Date(msg.at).toLocaleTimeString('vi-VN')}
+                    </div>
+
+                    {!isUser && (
+                      <button
+                        onClick={() => handleOpenObservability(msg, index)}
+                        style={{
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          border: '1px solid rgba(56, 189, 248, 0.25)',
+                          borderRadius: '6px',
+                          padding: '2px 8px',
+                          fontSize: '0.7rem',
+                          color: '#38BDF8',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 500,
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)')}
+                      >
+                        <ShieldCheck size={12} />
+                        <span>AI Judge & Trace</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -258,21 +285,29 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
 
             <div style={{
               maxWidth: '85%',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
-              fontSize: '0.8rem',
-              color: '#e9d5ff',
               display: 'flex',
               flexDirection: 'column',
               gap: '6px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
-                <Sparkles size={14} color="#c084fc" />
-                <span>DeepSeek AI đang suy nghĩ & điều phối MCP Tools...</span>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              <div style={{
+                borderRadius: '10px',
+                background: 'rgba(139, 92, 246, 0.12)',
+                border: '1px solid rgba(139, 92, 246, 0.4)',
+                padding: '10px 14px',
+                fontSize: '0.8rem',
+                color: '#e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 0 15px rgba(139, 92, 246, 0.2)',
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#c084fc',
+                  boxShadow: '0 0 8px #c084fc',
+                }} className="animate-pulse" />
                 {LIVE_THINKING_STAGES[currentStageIdx]}
               </div>
             </div>
@@ -312,6 +347,14 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
         </button>
       </form>
 
+      {/* Observability & LLM Judge Modal */}
+      <ObservabilityModal
+        isOpen={obsModalOpen}
+        onClose={() => setObsModalOpen(false)}
+        session={null}
+        selectedMessage={selectedObsMsg}
+        userPrompt={selectedObsUserPrompt}
+      />
     </div>
   );
 };
