@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, Brain, ChevronDown, ChevronRight, ShieldCheck, Maximize2, Minimize2, CornerDownLeft, X, MoveDiagonal } from 'lucide-react';
 import { ChatMessage, Intent } from '../types/teller';
 import { ObservabilityModal } from './ObservabilityModal';
+import { MarkdownMessage } from './MarkdownMessage';
 
 interface ChatAssistantProps {
   messages: ChatMessage[];
@@ -303,9 +304,8 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
                   color: isUser ? '#ffffff' : 'var(--text-main)',
                   border: isUser ? 'none' : '1px solid var(--border-color)',
                   boxShadow: isUser ? '0 4px 12px rgba(30, 58, 138, 0.3)' : 'none',
-                  whiteSpace: 'pre-line',
                 }}>
-                  {msg.text}
+                  <MarkdownMessage content={msg.text} isUser={isUser} />
                   
                   {/* Message Footer with Timestamp & AI Judge Button */}
                   <div style={{
