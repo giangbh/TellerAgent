@@ -103,8 +103,49 @@ export const App: React.FC = () => {
     }
   };
 
+  const [chatWidth, setChatWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('teller_chat_width');
+    return saved ? parseInt(saved, 10) : 480;
+  });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  const handleStartDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      // Calculate new width relative to main container left edge
+      const newWidth = Math.min(Math.max(e.clientX - 32, 340), 900);
+      setChatWidth(newWidth);
+      localStorage.setItem('teller_chat_width', newWidth.toString());
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+      }
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleSetPresetWidth = (w: number) => {
+    setChatWidth(w);
+    localStorage.setItem('teller_chat_width', w.toString());
+  };
+
   return (
-    <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px' }}>
+    <div style={{ maxWidth: '1800px', margin: '0 auto', padding: '24px', userSelect: isDragging ? 'none' : 'auto' }}>
       
       {/* Top Header */}
       <Header
@@ -138,25 +179,86 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Quick Scenarios Bar */}
-      {bootstrap && (
-        <ScenariosBar
-          scenarios={bootstrap.scenarios}
-          onSelectScenario={handleSendMessage}
-          disabled={loading}
-        />
-      )}
+      {/* Quick Scenarios Bar & Layout Preset Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+        <div style={{ flex: 1 }}>
+          {bootstrap && (
+            <ScenariosBar
+              scenarios={bootstrap.scenarios}
+              onSelectScenario={handleSendMessage}
+              disabled={loading}
+            />
+          )}
+        </div>
 
-      {/* 3-Column Smart Counter Workspace */}
+        {/* Layout Width Presets */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          background: 'rgba(15, 23, 42, 0.6)',
+          padding: '4px 8px',
+          borderRadius: '10px',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          fontSize: '0.75rem',
+          flexShrink: 0
+        }}>
+          <span style={{ color: '#94A3B8', fontWeight: 500, marginRight: '4px' }}>📐 Độ rộng Copilot:</span>
+          <button
+            onClick={() => handleSetPresetWidth(380)}
+            style={{
+              background: chatWidth <= 400 ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
+              border: chatWidth <= 400 ? '1px solid #3B82F6' : '1px solid transparent',
+              color: chatWidth <= 400 ? '#60A5FA' : '#94A3B8',
+              borderRadius: '6px',
+              padding: '3px 8px',
+              cursor: 'pointer',
+              fontSize: '0.725rem'
+            }}
+          >
+            Gọn (380px)
+          </button>
+          <button
+            onClick={() => handleSetPresetWidth(520)}
+            style={{
+              background: chatWidth > 400 && chatWidth <= 600 ? 'rgba(139, 92, 246, 0.25)' : 'transparent',
+              border: chatWidth > 400 && chatWidth <= 600 ? '1px solid #8B5CF6' : '1px solid transparent',
+              color: chatWidth > 400 && chatWidth <= 600 ? '#C084FC' : '#94A3B8',
+              borderRadius: '6px',
+              padding: '3px 8px',
+              cursor: 'pointer',
+              fontSize: '0.725rem'
+            }}
+          >
+            Rộng (520px)
+          </button>
+          <button
+            onClick={() => handleSetPresetWidth(700)}
+            style={{
+              background: chatWidth > 600 ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
+              border: chatWidth > 600 ? '1px solid #10B981' : '1px solid transparent',
+              color: chatWidth > 600 ? '#34D399' : '#94A3B8',
+              borderRadius: '6px',
+              padding: '3px 8px',
+              cursor: 'pointer',
+              fontSize: '0.725rem'
+            }}
+          >
+            Siêu rộng (700px)
+          </button>
+        </div>
+      </div>
+
+      {/* 3-Column Smart Counter Workspace with Draggable Divider */}
       <main style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(320px, 380px) minmax(420px, 1fr) minmax(320px, 380px)',
-        gap: '20px',
+        gridTemplateColumns: `${chatWidth}px 12px minmax(380px, 1fr) minmax(320px, 380px)`,
+        gap: '0px',
         alignItems: 'start',
       }}>
         
         {/* Left Column: Natural Language Copilot Chat */}
-        <section>
+        <section style={{ paddingRight: '12px' }}>
           <ChatAssistant
             messages={session?.messages || []}
             intent={session?.intent}
@@ -165,8 +267,37 @@ export const App: React.FC = () => {
           />
         </section>
 
+        {/* Draggable Divider Handle */}
+        <div
+          onMouseDown={handleStartDrag}
+          title="Kéo sang trái/phải để điều chỉnh độ rộng khung Chat"
+          style={{
+            width: '12px',
+            height: '100%',
+            minHeight: '660px',
+            cursor: 'col-resize',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s ease',
+            background: isDragging ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
+            borderRadius: '6px'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)')}
+          onMouseLeave={(e) => {
+            if (!isDragging) e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          <div style={{
+            width: '3px',
+            height: '40px',
+            borderRadius: '2px',
+            background: isDragging ? '#A855F7' : 'rgba(255, 255, 255, 0.2)'
+          }} />
+        </div>
+
         {/* Center Column: Visual Plan + Live Action Draft */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingLeft: '8px', paddingRight: '20px' }}>
           {session && (
             <>
               <PlanViewer
