@@ -89,5 +89,18 @@ public class DatabaseConfig {
                 created_at TEXT
             );
         """);
+
+        // 5. Dynamic MCP Security Policies (Externalized RBAC Table)
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS mcp_security_policies (
+                capability_id TEXT PRIMARY KEY,
+                risk_level TEXT,
+                is_side_effect INTEGER,
+                requires_idempotency INTEGER,
+                allowed_callers TEXT,
+                allowed_workflows TEXT,
+                updated_at TEXT
+            );
+        """);
     }
 }

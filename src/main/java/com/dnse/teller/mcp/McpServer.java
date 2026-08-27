@@ -9,10 +9,12 @@ import java.util.*;
 @Service
 public class McpServer {
     private final McpToolRegistry registry;
+    private final McpSecurityPolicyProvider policyProvider;
     private final ObjectMapper objectMapper;
 
-    public McpServer(McpToolRegistry registry, ObjectMapper objectMapper) {
+    public McpServer(McpToolRegistry registry, McpSecurityPolicyProvider policyProvider, ObjectMapper objectMapper) {
         this.registry = registry;
+        this.policyProvider = policyProvider;
         this.objectMapper = objectMapper;
     }
 
@@ -55,7 +57,8 @@ public class McpServer {
         }
 
         McpTool tool = toolOpt.get();
-        validatePolicy(tool, caller, workflow, idempotencyKey);
+        McpSecurityPolicy policy = policyProvider.getPolicy(tool.getId());
+        validatePolicy(tool.getId(), policy, caller, workflow, idempotencyKey);
 
         String startedAt = Instant.now().toString();
         Map<String, Object> result = tool.execute(args, idempotencyKey);
@@ -65,8 +68,8 @@ public class McpServer {
         callRecord.put("capabilityId", tool.getId());
         callRecord.put("toolName", tool.getName());
         callRecord.put("caller", caller);
-        callRecord.put("risk", tool.getRisk());
-        callRecord.put("sideEffect", tool.isSideEffect());
+        callRecord.put("risk", policy != null ? policy.getRiskLevel() : tool.getRisk());
+        callRecord.put("sideEffect", policy != null ? policy.isSideEffect() : tool.isSideEffect());
         callRecord.put("startedAt", startedAt);
         callRecord.put("completedAt", completedAt);
         callRecord.put("args", maskArgs(args));
@@ -80,7 +83,7 @@ public class McpServer {
         result.put("protocolVersion", "2024-11-05");
         result.put("serverInfo", Map.of(
             "name", "bsmart-teller-mcp-server",
-            "version", "1.0.0",
+            "version", "2.0.0-dynamic-policy",
             "environment", "Java-Spring-Boot-3.4"
         ));
         result.put("capabilities", Map.of(
@@ -93,17 +96,19 @@ public class McpServer {
     private Map<String, Object> handleToolsList(Map<String, Object> params) {
         List<Map<String, Object>> tools = new ArrayList<>();
         for (McpTool tool : registry.getAllTools()) {
+            McpSecurityPolicy policy = policyProvider.getPolicy(tool.getId());
+
             Map<String, Object> toolDef = new LinkedHashMap<>();
             toolDef.put("name", tool.getName());
             toolDef.put("id", tool.getId());
             toolDef.put("description", tool.getDescription());
             toolDef.put("inputSchema", tool.getInputSchema());
             toolDef.put("metadata", Map.of(
-                "risk", tool.getRisk(),
-                "sideEffect", tool.isSideEffect(),
-                "requiresIdempotency", tool.isRequiresIdempotency(),
-                "allowedCallers", tool.getAllowedCallers(),
-                "workflows", tool.getWorkflows()
+                "risk", policy != null ? policy.getRiskLevel() : tool.getRisk(),
+                "sideEffect", policy != null ? policy.isSideEffect() : tool.isSideEffect(),
+                "requiresIdempotency", policy != null ? policy.isRequiresIdempotency() : tool.isRequiresIdempotency(),
+                "allowedCallers", policy != null ? policy.getAllowedCallers() : tool.getAllowedCallers(),
+                "workflows", policy != null ? policy.getAllowedWorkflows() : tool.getWorkflows()
             ));
             tools.add(toolDef);
         }
@@ -123,6 +128,7 @@ public class McpServer {
         }
 
         McpTool tool = toolOpt.get();
+        McpSecurityPolicy policy = policyProvider.getPolicy(tool.getId());
         Map<String, Object> arguments = params.get("arguments") instanceof Map ? (Map<String, Object>) params.get("arguments") : Map.of();
 
         // RBAC Context from params or arguments
@@ -133,7 +139,7 @@ public class McpServer {
         String idempotencyKey = params.get("idempotencyKey") != null ? String.valueOf(params.get("idempotencyKey"))
             : (arguments.get("_idempotencyKey") != null ? String.valueOf(arguments.get("_idempotencyKey")) : null);
 
-        validatePolicy(tool, caller, workflow, idempotencyKey);
+        validatePolicy(tool.getId(), policy, caller, workflow, idempotencyKey);
 
         Map<String, Object> executionResult = tool.execute(arguments, idempotencyKey);
 
@@ -145,8 +151,8 @@ public class McpServer {
         response.put("metadata", Map.of(
             "capabilityId", tool.getId(),
             "toolName", tool.getName(),
-            "risk", tool.getRisk(),
-            "sideEffect", tool.isSideEffect()
+            "risk", policy != null ? policy.getRiskLevel() : tool.getRisk(),
+            "sideEffect", policy != null ? policy.isSideEffect() : tool.isSideEffect()
         ));
         return response;
     }
@@ -197,15 +203,17 @@ public class McpServer {
         );
     }
 
-    private void validatePolicy(McpTool tool, String caller, String workflow, String idempotencyKey) {
-        if (!tool.getAllowedCallers().contains(caller)) {
-            throw new McpSecurityException(caller + " không được phép gọi " + tool.getId(), "TOOL_POLICY_DENIED");
+    private void validatePolicy(String capabilityId, McpSecurityPolicy policy, String caller, String workflow, String idempotencyKey) {
+        if (policy == null) return;
+
+        if (policy.getAllowedCallers() != null && !policy.getAllowedCallers().isEmpty() && !policy.getAllowedCallers().contains(caller)) {
+            throw new McpSecurityException(caller + " không được phép gọi " + capabilityId, "TOOL_POLICY_DENIED");
         }
-        if (!tool.getWorkflows().contains(workflow)) {
-            throw new McpSecurityException(tool.getId() + " không thuộc workflow " + workflow, "INVALID_WORKFLOW");
+        if (policy.getAllowedWorkflows() != null && !policy.getAllowedWorkflows().isEmpty() && !policy.getAllowedWorkflows().contains(workflow)) {
+            throw new McpSecurityException(capabilityId + " không thuộc workflow " + workflow, "INVALID_WORKFLOW");
         }
-        if (tool.isRequiresIdempotency() && (idempotencyKey == null || idempotencyKey.trim().isEmpty())) {
-            throw new McpSecurityException(tool.getId() + " yêu cầu idempotency key", "IDEMPOTENCY_REQUIRED");
+        if (policy.isRequiresIdempotency() && (idempotencyKey == null || idempotencyKey.trim().isEmpty())) {
+            throw new McpSecurityException(capabilityId + " yêu cầu idempotency key", "IDEMPOTENCY_REQUIRED");
         }
     }
 

@@ -1,0 +1,138 @@
+[
+  {
+    "capabilityId": "customer.profile.read",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["customer_context_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "customer.accounts.list",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["customer_context_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "cash_withdrawal", "dynamic_autonomous", "policy_assistance", "cash_deposit"]
+  },
+  {
+    "capabilityId": "customer.accounts.summary",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "customer_context_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance"]
+  },
+  {
+    "capabilityId": "fx.rate.lookup",
+    "riskLevel": "READ_SAFE",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "policy_agent", "transaction_draft_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "domestic_transfer", "policy_assistance", "cash_deposit", "cash_withdrawal"]
+  },
+  {
+    "capabilityId": "branch.directory.lookup",
+    "riskLevel": "READ_SAFE",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "policy_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "domestic_transfer", "policy_assistance", "cash_deposit", "cash_withdrawal"]
+  },
+  {
+    "capabilityId": "knowledge.policy.search",
+    "riskLevel": "READ_SAFE",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["policy_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "pricing.transfer.fee",
+    "riskLevel": "READ_SAFE",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["policy_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "dynamic_autonomous", "policy_assistance"]
+  },
+  {
+    "capabilityId": "bank.directory.lookup",
+    "riskLevel": "READ_SAFE",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "dynamic_autonomous", "policy_assistance"]
+  },
+  {
+    "capabilityId": "transfer.limit.check",
+    "riskLevel": "CONTROL_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "transaction.draft.validate",
+    "riskLevel": "DRAFT",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "risk.transfer.screen",
+    "riskLevel": "CONTROL_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["risk_assistant", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "account.resolve.by_number",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["cash_deposit", "cash_withdrawal", "dynamic_autonomous", "domestic_transfer"]
+  },
+  {
+    "capabilityId": "cash.limit.check",
+    "riskLevel": "CONTROL_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["cash_deposit", "cash_withdrawal", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "cash.draft.validate",
+    "riskLevel": "DRAFT",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["transaction_draft_agent", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["cash_deposit", "cash_withdrawal", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "risk.cash.screen",
+    "riskLevel": "CONTROL_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["risk_assistant", "dynamic_tool_agent", "business_orchestrator"],
+    "allowedWorkflows": ["cash_deposit", "cash_withdrawal", "dynamic_autonomous"]
+  },
+  {
+    "capabilityId": "core.transfer.execute",
+    "riskLevel": "FINANCIAL_WRITE",
+    "isSideEffect": true,
+    "requiresIdempotency": true,
+    "allowedCallers": ["business_orchestrator"],
+    "allowedWorkflows": ["domestic_transfer"]
+  },
+  {
+    "capabilityId": "core.cash.execute",
+    "riskLevel": "FINANCIAL_WRITE",
+    "isSideEffect": true,
+    "requiresIdempotency": true,
+    "allowedCallers": ["business_orchestrator"],
+    "allowedWorkflows": ["cash_deposit", "cash_withdrawal"]
+  }
+]
