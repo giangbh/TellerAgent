@@ -423,10 +423,24 @@ public class RuleBasedReasoningEngine {
 
     public String parseAccount(String text) {
         if (text == null) return null;
-        Matcher m = ACCOUNT_PAT.matcher(text);
-        if (m.find()) {
-            return m.group(0);
+
+        // 1. Match explicit account prefixes (e.g. "tài khoản 3456", "stk: 3456", "tk 3456789", "số tk 3456")
+        Pattern prefixPat = Pattern.compile("(?:tài khoản|stk|tk|số tk|số tài khoản|account|acc)\\s*[:#-]?\\s*([A-Za-z0-9_-]{3,20})", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        Matcher m1 = prefixPat.matcher(text);
+        if (m1.find()) {
+            return m1.group(1).trim();
         }
+
+        // 2. Match standalone account numbers (3 to 20 digits, not followed by money units like tr, k, vnd, tỷ, triệu)
+        Pattern standalonePat = Pattern.compile("(?<![a-zA-Z0-9])(\\d{3,20})(?![a-zA-Z0-9]|\\s*(?:tỷ|ty|triệu|tr|nghìn|ngan|k|usd|eur|jpy|gbp|vnd|đ))", Pattern.CASE_INSENSITIVE);
+        Matcher m2 = standalonePat.matcher(text);
+        while (m2.find()) {
+            String candidate = m2.group(1);
+            if (!candidate.equals("2024") && !candidate.equals("2025") && !candidate.equals("2026")) {
+                return candidate;
+            }
+        }
+
         return null;
     }
 

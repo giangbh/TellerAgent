@@ -86,17 +86,19 @@ public class DeepSeekClient {
                 và lựa chọn đúng các công cụ MCP phù hợp để thực thi qua Function Calling (Tools Call).
 
                 Quy tắc chọn công cụ MCP:
-                1. Tra cứu/in sao kê, xem lịch sử giao dịch, biến động số dư, dòng tiền thu chi -> BẮT BUỘC chọn tool `statement_transaction_history` (tham số `accountNumber` hoặc `customerRef`).
-                2. Phân tích chân dung khách hàng 360, hành vi chi tiêu, khẩu vị đầu tư -> BẮT BUỘC chọn tool `customer_persona_analytics` (tham số `customerRef`).
-                3. Kiểm tra điểm tín dụng CIC, nợ xấu, hạn mức vay phê duyệt trước -> BẮT BUỘC chọn tool `customer_credit_score_check` (tham số `customerRef`).
-                4. Tư vấn gợi ý ưu đãi, đề xuất sản phẩm phù hợp tiếp theo (Next-Best-Offer/NBO) -> BẮT BUỘC chọn tool `recommendation_nbo_products` (tham số `customerRef`).
-                5. Tính tiền lãi tiết kiệm, tối ưu phương án gửi tiền, so sánh kỳ hạn -> BẮT BUỘC chọn tool `savings_product_advisor` (tham số `amount`, `termMonths`).
-                6. Dịch vụ thẻ (khóa thẻ, đổi PIN, tra cứu hạn mức thẻ) -> BẮT BUỘC chọn tool `card_service_manage` (tham số `customerRef`, `cardAction`).
-                7. Tra cứu tỷ giá ngoại tệ & quy đổi tiền tệ -> BẮT BUỘC chọn tool `fx_rate_lookup` (tham số `currency`, `amount`).
-                8. Tra cứu địa chỉ, hotline mạng lưới chi nhánh -> BẮT BUỘC chọn tool `branch_directory_lookup` (tham số `city`).
-                9. Đối chiếu thông tin chủ tài khoản, kiểm tra số dư khả dụng -> chọn tool `account_resolve_by_number` (tham số `accountNumber`).
-                10. Chuyển tiền / Chuyển khoản trong nước & 24/7 -> gọi chuỗi kiểm tra hạn mức `transfer_limit_check`, tra cứu ngân hàng `bank_directory_lookup`, tính phí `pricing_transfer_fee`.
-                11. Chuẩn hóa số tiền thành số nguyên VND (VD: 50tr -> 50000000, 1.5 tỷ -> 1500000000, 500k -> 500000).
+                1. Nộp tiền mặt vào tài khoản -> chọn tool `account_resolve_by_number` (tham số `accountNumber`), `cash_limit_check` (tham số `amount`).
+                2. Rút tiền mặt từ tài khoản -> chọn tool `account_resolve_by_number` (tham số `accountNumber`), `cash_limit_check` (tham số `amount`).
+                3. Tra cứu/in sao kê, xem lịch sử giao dịch, biến động số dư, dòng tiền thu chi -> BẮT BUỘC chọn tool `statement_transaction_history` (tham số `accountNumber` hoặc `customerRef`).
+                4. Phân tích chân dung khách hàng 360, hành vi chi tiêu, khẩu vị đầu tư -> BẮT BUỘC chọn tool `customer_persona_analytics` (tham số `customerRef`).
+                5. Kiểm tra điểm tín dụng CIC, nợ xấu, hạn mức vay phê duyệt trước -> BẮT BUỘC chọn tool `customer_credit_score_check` (tham số `customerRef`).
+                6. Tư vấn gợi ý ưu đãi, đề xuất sản phẩm phù hợp tiếp theo (Next-Best-Offer/NBO) -> BẮT BUỘC chọn tool `recommendation_nbo_products` (tham số `customerRef`).
+                7. Tính tiền lãi tiết kiệm, tối ưu phương án gửi tiền, so sánh kỳ hạn -> BẮT BUỘC chọn tool `savings_product_advisor` (tham số `amount`, `termMonths`).
+                8. Dịch vụ thẻ (khóa thẻ, đổi PIN, tra cứu hạn mức thẻ) -> BẮT BUỘC chọn tool `card_service_manage` (tham số `customerRef`, `cardAction`).
+                9. Tra cứu tỷ giá ngoại tệ & quy đổi tiền tệ -> BẮT BUỘC chọn tool `fx_rate_lookup` (tham số `currency`, `amount`).
+                10. Tra cứu địa chỉ, hotline mạng lưới chi nhánh -> BẮT BUỘC chọn tool `branch_directory_lookup` (tham số `city`).
+                11. Đối chiếu thông tin chủ tài khoản, kiểm tra số dư khả dụng -> chọn tool `account_resolve_by_number` (tham số `accountNumber`).
+                12. Chuyển tiền / Chuyển khoản trong nước & 24/7 -> gọi chuỗi kiểm tra hạn mức `transfer_limit_check`, tra cứu ngân hàng `bank_directory_lookup`, tính phí `pricing_transfer_fee`.
+                13. Chuẩn hóa số tiền thành số nguyên VND (VD: 50tr -> 50000000, 1.5 tỷ -> 1500000000, 500k -> 500000).
                 """;
 
             List<Map<String, Object>> messages = List.of(
@@ -161,14 +163,43 @@ public class DeepSeekClient {
                     stepIdx++;
                 }
 
-                Intent dynamicIntent = new Intent("DYNAMIC_AUTONOMOUS_TASK", "dynamic_autonomous", 0.99, extractedEntities);
-                dynamicIntent.setQuery(prompt);
+                String lowerPrompt = prompt != null ? prompt.toLowerCase() : "";
+                String intentType = "DYNAMIC_AUTONOMOUS_TASK";
+                String workflow = "dynamic_autonomous";
 
-                Plan plan = new Plan(
-                    "DeepSeek AI tự động lập kế hoạch và điều phối " + steps.size() + " công cụ MCP",
-                    steps,
-                    List.of("Thực thi toàn bộ các bước được DeepSeek đề xuất", "Tổng hợp phản hồi an toàn cho GDV")
-                );
+                if (lowerPrompt.contains("nộp tiền") || lowerPrompt.matches(".*nộp\\s+\\d.*")) {
+                    intentType = "CASH_DEPOSIT";
+                    workflow = "cash_deposit";
+                } else if (lowerPrompt.contains("rút tiền") || lowerPrompt.matches(".*rút\\s+\\d.*")) {
+                    intentType = "CASH_WITHDRAWAL";
+                    workflow = "cash_withdrawal";
+                } else if (lowerPrompt.contains("chuyển khoản") || lowerPrompt.contains("chuyển tiền") || lowerPrompt.matches(".*chuyển\\s+\\d.*")) {
+                    intentType = "DOMESTIC_TRANSFER";
+                    workflow = "domestic_transfer";
+                }
+
+                Plan plan;
+                if ("cash_deposit".equals(workflow) || "cash_withdrawal".equals(workflow) || "domestic_transfer".equals(workflow)) {
+                    plan = new Plan(
+                        "Mở màn hình giao dịch và tự điền bản nháp Live Draft",
+                        List.of(
+                            new PlanStep("S1", "DELEGATE", "customer_context_agent", List.of()),
+                            new PlanStep("S2", "DELEGATE", "policy_agent", List.of()),
+                            new PlanStep("S3", "DELEGATE", "transaction_draft_agent", List.of("S1", "S2")),
+                            new PlanStep("S4", "DELEGATE", "risk_assistant", List.of("S3"))
+                        ),
+                        List.of("Có đủ trường bắt buộc", "Qua validation", "Có risk decision", "Không posting")
+                    );
+                } else {
+                    plan = new Plan(
+                        "DeepSeek AI tự động lập kế hoạch và điều phối " + steps.size() + " công cụ MCP",
+                        steps,
+                        List.of("Thực thi toàn bộ các bước được DeepSeek đề xuất", "Tổng hợp phản hồi an toàn cho GDV")
+                    );
+                }
+
+                Intent dynamicIntent = new Intent(intentType, workflow, 0.99, extractedEntities);
+                dynamicIntent.setQuery(prompt);
 
                 return Optional.of(new DeepSeekPlanResult(dynamicIntent, plan, content));
             }
