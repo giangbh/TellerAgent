@@ -282,11 +282,36 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ messages, intent, 
                         gap: '6px',
                         lineHeight: '1.4',
                       }}>
-                        {msg.thinkingSteps!.map((step, sIdx) => (
-                          <div key={sIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                            <span>{step}</span>
-                          </div>
-                        ))}
+                        {msg.thinkingSteps!.map((step, sIdx) => {
+                          const matchLatency = step.match(/^(\S+)\s+\[(\d+ms)\]\s+(.*)$/);
+                          if (matchLatency) {
+                            const [, icon, latency, content] = matchLatency;
+                            return (
+                              <div key={sIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 0' }}>
+                                <span style={{ fontSize: '0.85rem' }}>{icon}</span>
+                                <span style={{
+                                  fontSize: '0.675rem',
+                                  fontFamily: 'monospace',
+                                  color: '#38bdf8',
+                                  background: 'rgba(56, 189, 248, 0.12)',
+                                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  fontWeight: 600,
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {latency}
+                                </span>
+                                <span style={{ color: '#e2e8f0', flex: 1 }}>{content}</span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={sIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', color: '#94a3b8' }}>
+                              <span>{step}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

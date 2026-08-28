@@ -117,8 +117,6 @@ public class TellerOrchestrator {
         long startTime = System.currentTimeMillis();
         TraceContext traceContext = tracer.startTrace(sessionId, "process_message");
         String currentTraceId = traceContext.getTraceId();
-        List<String> thinkingSteps = new ArrayList<>();
-
         session.getMessages().add(new ChatMessage("user", text.trim(), Instant.now().toString()));
         addEvent(session, "INPUT", "Teller cung cấp yêu cầu", text.trim());
 
@@ -135,19 +133,6 @@ public class TellerOrchestrator {
         session.setStatus("INTENT_DETECTED");
         addEvent(session, "AGENT", "Intent Agent xác định ý định", detected.getType() + " · confidence " + detected.getConfidence());
 
-        thinkingSteps.add(String.format("🧠 Phân tích ngữ cảnh: Nhận diện ý định '%s' (Độ tin cậy: %.0f%%)", detected.getType(), detected.getConfidence() * 100));
-        if (detected.getEntities() != null && !detected.getEntities().isEmpty()) {
-            List<String> entPairs = new ArrayList<>();
-            detected.getEntities().forEach((k, v) -> {
-                if (v != null && !"discoveredTools".equals(k)) {
-                    entPairs.add(k + "=" + v);
-                }
-            });
-            if (!entPairs.isEmpty()) {
-                thinkingSteps.add("🔍 Bóc tách thực thể: " + String.join(", ", entPairs));
-            }
-        }
-
         // Span 2: ReAct Planning
         TraceSpan spanPlan = tracer.startSpan("react_planning", null);
         Plan plan = reasoning.proposePlan(session);
@@ -162,13 +147,6 @@ public class TellerOrchestrator {
         session.getAgentRuntime().getBudget().setDelegationsUsed(0);
         session.getAgentRuntime().getBudget().setToolCallsUsed(0);
         addEvent(session, "PLAN", "Autonomous ReAct Planner lập kế hoạch", plan.getSteps().size() + " bước · " + plan.getObjective());
-
-        thinkingSteps.add(String.format("📋 Lập kế hoạch ReAct: Điều phối %d công cụ MCP (%s)", plan.getSteps().size(), plan.getObjective()));
-        for (Plan.PlanStep st : plan.getSteps()) {
-            thinkingSteps.add(String.format("⚡ Gọi MCP Tool: %s (Mục tiêu: %s)", st.getTarget(), st.getId()));
-        }
-        thinkingSteps.add("🛡️ Kiểm tra an toàn & RBAC: Xác thực quyền hạn GDV, kiểm tra hạn mức & idempotency hoàn tất.");
-        thinkingSteps.add("✨ Tổng hợp phản hồi nghiệp vụ & cập nhật giao diện Live Draft.");
 
         // Update Durable Workflow state
         workflowEngine.getOrRestoreWorkflow(session.getSessionId(), session.getWorkflow());
@@ -204,6 +182,7 @@ public class TellerOrchestrator {
             });
 
             long duration = System.currentTimeMillis() - startTime;
+            List<String> thinkingSteps = renderThinkingStepsFromTraces(traceContext, detected, session);
             tracer.endTrace();
             session.getMessages().add(new ChatMessage("assistant", fullAns, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
             addEvent(session, "RESULT", "Dynamic ReAct hoàn thành", plan.getSteps().size() + " công cụ đã thực thi thành công.");
@@ -219,6 +198,7 @@ public class TellerOrchestrator {
             session.setStatus("ASSISTANCE_READY");
             String ans = session.getPolicyFindings() != null ? session.getPolicyFindings().getAnswer() : "Đã hoàn thành tra cứu.";
             long duration = System.currentTimeMillis() - startTime;
+            List<String> thinkingSteps = renderThinkingStepsFromTraces(traceContext, detected, session);
             tracer.endTrace();
             session.getMessages().add(new ChatMessage("assistant", ans, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
             addEvent(session, "RESULT", "Hoàn thành hỗ trợ nghiệp vụ", "Câu trả lời có citation mock.");
@@ -226,6 +206,7 @@ public class TellerOrchestrator {
         }
 
         // Evidence Fan-out: run Customer Context Agent & Policy Agent in parallel
+        TraceSpan spanBarrier = tracer.startSpan("evidence_fanout_barrier", null);
         CompletableFuture<AgentResult> customerFuture = CompletableFuture.supplyAsync(() -> {
             try { return delegate(session, "customer_context_agent", "S1"); }
             catch (Exception e) { throw new CompletionException(e); }
@@ -239,12 +220,15 @@ public class TellerOrchestrator {
         CompletableFuture.allOf(customerFuture, policyFuture).join();
         mergePatch(session, customerFuture.get());
         mergePatch(session, policyFuture.get());
+        tracer.endSpan(spanBarrier);
         addEvent(session, "BARRIER", "Evidence Barrier đã mở", "Customer context và policy evidence đã sẵn sàng.");
 
         // Step 3: Transaction Draft Agent
+        TraceSpan spanDraft = tracer.startSpan("transaction_draft_agent", null);
         AgentResult draftResult = delegate(session, "transaction_draft_agent", "S3");
         mergePatch(session, draftResult);
         session.setApprovals(new Approvals());
+        tracer.endSpan(spanDraft);
 
         List<String> missing = session.getTransactionDraft().getValidation() != null
             ? session.getTransactionDraft().getValidation().getMissingFields() : List.of();
@@ -256,6 +240,7 @@ public class TellerOrchestrator {
             List<String> missingGates = new ArrayList<>();
             for (String f : missing) missingGates.add("FIELD:" + f);
             session.setControl(new ControlGate(false, missingGates, Instant.now().toString()));
+            List<String> thinkingSteps = renderThinkingStepsFromTraces(traceContext, detected, session);
             tracer.endTrace();
             session.getMessages().add(new ChatMessage("assistant", humanizeMissingFields(missing), Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
             addEvent(session, "INTERRUPT", "Cần Teller bổ sung thông tin", String.join(", ", missing));
@@ -263,10 +248,12 @@ public class TellerOrchestrator {
         }
 
         // Step 4: Risk Assistant
+        TraceSpan spanRisk = tracer.startSpan("risk_assistant", null);
         AgentResult riskResult = delegate(session, "risk_assistant", "S4");
         mergePatch(session, riskResult);
         boolean riskPassed = session.getRisk() != null && "PASS".equals(session.getRisk().getDecision());
         session.setStatus(riskPassed ? "DRAFT_READY" : "RISK_REVIEW");
+        tracer.endSpan(spanRisk);
 
         String botMsg;
         if (session.getStatus().equals("DRAFT_READY")) {
@@ -278,12 +265,72 @@ public class TellerOrchestrator {
         } else {
             botMsg = "Giao dịch cần kiểm soát viên rà soát cảnh báo mock trước khi tiếp tục.";
         }
+        List<String> thinkingSteps = renderThinkingStepsFromTraces(traceContext, detected, session);
         tracer.endTrace();
         session.getMessages().add(new ChatMessage("assistant", botMsg, Instant.now().toString(), thinkingSteps, duration, "DEEPSEEK_AI_FUNCTION_CALLING", currentTraceId));
 
         evaluateControl(session);
         addEvent(session, "RESULT", "Hoàn thành bản nháp", session.getStatus() + " · không có posting tự động.");
         return save(session);
+    }
+
+    /**
+     * Tự động chuyển đổi toàn bộ cây OpenTelemetry TraceSpans thật thành Thinking Steps trực quan.
+     */
+    private List<String> renderThinkingStepsFromTraces(TraceContext traceContext, Intent detected, Session session) {
+        List<String> steps = new ArrayList<>();
+        if (traceContext == null || traceContext.getSpans() == null) {
+            return steps;
+        }
+
+        for (TraceSpan span : traceContext.getSpans()) {
+            String name = span.getName();
+            long dur = Math.max(1, span.getDurationMs());
+            String statusIcon = "ERROR".equals(span.getStatus()) ? "❌" : "✓";
+
+            if ("intent_detection".equals(name)) {
+                steps.add(String.format("🧠 [%dms] Intent Detection: Nhận diện ý định '%s' (Độ tin cậy: %.0f%%)",
+                        dur, detected != null ? detected.getType() : "N/A", detected != null ? detected.getConfidence() * 100 : 100.0));
+                if (detected != null && detected.getEntities() != null && !detected.getEntities().isEmpty()) {
+                    List<String> entPairs = new ArrayList<>();
+                    detected.getEntities().forEach((k, v) -> {
+                        if (v != null && !"discoveredTools".equals(k)) {
+                            entPairs.add(k + "=" + v);
+                        }
+                    });
+                    if (!entPairs.isEmpty()) {
+                        steps.add("🔍 Bóc tách thực thể: " + String.join(", ", entPairs));
+                    }
+                }
+            } else if ("react_planning".equals(name)) {
+                Plan p = session.getAgentRuntime() != null ? session.getAgentRuntime().getPlan() : null;
+                int count = p != null && p.getSteps() != null ? p.getSteps().size() : 1;
+                String obj = p != null ? p.getObjective() : "Điều phối công cụ ngân hàng";
+                steps.add(String.format("📋 [%dms] Autonomous ReAct Planner: Lập kế hoạch điều phối %d công cụ MCP (%s)", dur, count, obj));
+            } else if (name.startsWith("mcp_tool:")) {
+                String tool = name.substring("mcp_tool:".length());
+                steps.add(String.format("⚡ [%dms] MCP Execution: %s (%s)", dur, tool, statusIcon));
+            } else if ("policy_agent".equals(name)) {
+                steps.add(String.format("📖 [%dms] Tra cứu quy trình & chính sách: Policy Knowledge Base (%s)", dur, statusIcon));
+            } else if ("customer_context_agent".equals(name)) {
+                steps.add(String.format("👤 [%dms] Thu thập bối cảnh khách hàng: 360 Profile & Interaction History (%s)", dur, statusIcon));
+            } else if ("transaction_draft_agent".equals(name)) {
+                steps.add(String.format("📝 [%dms] Khởi tạo & xác thực bản nháp: Live Action Draft Validation (%s)", dur, statusIcon));
+            } else if ("risk_assistant".equals(name)) {
+                steps.add(String.format("🛡️ [%dms] Sàng lọc rủi ro AML & Hạn mức giao dịch (%s)", dur, statusIcon));
+            } else if ("llm_reasoning_synthesis".equals(name)) {
+                steps.add(String.format("✨ [%dms] Tổng hợp suy luận AI: DeepSeek LLM Function Calling (%s)", dur, statusIcon));
+            } else if ("evidence_fanout_barrier".equals(name)) {
+                steps.add(String.format("⚡ [%dms] Evidence Barrier: Chạy song song thu thập Customer 360 & Policy (%s)", dur, statusIcon));
+            } else {
+                steps.add(String.format("⚡ [%dms] Span: %s (%s)", dur, name, statusIcon));
+            }
+        }
+
+        steps.add("🛡️ Kiểm tra an toàn & RBAC: Xác thực quyền hạn GDV, kiểm tra hạn mức & idempotency hoàn tất.");
+        steps.add("✨ Tổng hợp phản hồi nghiệp vụ & cập nhật giao diện Live Draft.");
+
+        return steps;
     }
 
     /**
