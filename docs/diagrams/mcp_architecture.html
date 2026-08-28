@@ -331,21 +331,36 @@
         <path d="M 219,300 V 336 Q 219,344 227,344 H 674 Q 682,344 682,352 V 376" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrow)"/>
         <path d="M 219,300 V 336 Q 219,344 227,344 H 932 Q 940,344 940,352 V 376" fill="none" stroke="#f43f5e" stroke-width="1.2" marker-end="url(#arrow)"/>
 
+        <!-- Lines Tier 3 -> Tier 4: Nối trực tiếp vào mép trên của Box lớn Tầng 4 -->
+        <path d="M 178,552 V 576 Q 178,588 200,588 H 540 Q 560,588 560,594 V 600" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <path d="M 430,552 V 576 Q 430,588 450,588 H 540" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <path d="M 682,552 V 576 Q 682,588 660,588 H 580" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <path d="M 940,552 V 576 Q 940,588 920,588 H 580 Q 560,588 560,594 V 600" fill="none" stroke="#f43f5e" stroke-width="1.4" marker-end="url(#arrow)"/>
+        <rect x="500" y="580" width="120" height="14" rx="2" fill="#0f172a"/>
+        <text x="560" y="590" fill="#94a3b8" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">INTERNAL GATEWAY I/O</text>
+
         <!-- ==================== TIER 4: BACKEND CORE & PERSISTENCE ==================== -->
-        <rect x="40" y="600" width="1040" height="64" rx="8" fill="rgba(30, 41, 59, 0.4)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
-        <rect x="56" y="592" width="220" height="16" rx="2" fill="#0f172a"/>
-        <text x="64" y="604" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">BANKING CORE & INFRASTRUCTURE</text>
+        <!-- Box lớn Tầng 4 nhận tất cả các kết nối từ MCP Tools -->
+        <rect x="40" y="600" width="1040" height="72" rx="8" fill="rgba(30, 41, 59, 0.5)" stroke="#38bdf8" stroke-width="1.2"/>
+        <rect x="56" y="592" width="310" height="16" rx="2" fill="#0f172a"/>
+        <text x="64" y="604" fill="#38bdf8" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">ENTERPRISE CORE BANKING & INFRASTRUCTURE</text>
 
-        <text x="180" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">Core Banking (T24 / Mock Facade)</text>
-        <text x="440" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">NAPAS 24/7 Switch Gateway</text>
-        <text x="700" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">CIC Credit & AML Blacklist</text>
-        <text x="940" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">SQLite / OpenTelemetry DB</text>
+        <!-- Các phân hệ bên trong Tầng 4 -->
+        <rect x="60" y="616" width="240" height="44" rx="4" fill="#1e293b" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <text x="180" y="636" fill="#ffffff" font-size="10.5" font-weight="600" text-anchor="middle">Profile Core Banking</text>
+        <text x="180" y="650" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">(FIS Profile v7.x / Mock Facade)</text>
 
-        <!-- Lines Tier 3 -> Tier 4 -->
-        <path d="M 178,552 V 600" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-        <path d="M 430,552 V 600" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-        <path d="M 682,552 V 600" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-        <path d="M 940,552 V 600" fill="none" stroke="#f43f5e" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="316" y="616" width="240" height="44" rx="4" fill="#1e293b" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <text x="436" y="636" fill="#ffffff" font-size="10.5" font-weight="600" text-anchor="middle">NAPAS 24/7 Switch</text>
+        <text x="436" y="650" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">(Fast Transfer & QR Payment)</text>
+
+        <rect x="572" y="616" width="240" height="44" rx="4" fill="#1e293b" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <text x="692" y="636" fill="#ffffff" font-size="10.5" font-weight="600" text-anchor="middle">CIC & Risk Screening</text>
+        <text x="692" y="650" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">(National Credit & AML List)</text>
+
+        <rect x="828" y="616" width="236" height="44" rx="4" fill="#1e293b" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <text x="946" y="636" fill="#ffffff" font-size="10.5" font-weight="600" text-anchor="middle">Audit Logs & Telemetry</text>
+        <text x="946" y="650" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">(SQLite DB & OpenTelemetry APM)</text>
 
         <!-- ==================== LEGEND STRIP ==================== -->
         <line x1="40" y1="692" x2="1080" y2="692" stroke="rgba(148, 163, 184, 0.2)" stroke-width="0.8"/>
