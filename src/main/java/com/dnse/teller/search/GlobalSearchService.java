@@ -4,6 +4,8 @@ import com.dnse.teller.mock.*;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class GlobalSearchService {
@@ -11,6 +13,9 @@ public class GlobalSearchService {
     private final MockCustomerProfileService customerProfileService;
     private final MockAccountService accountService;
     private final MockMarketDirectoryService marketDirectoryService;
+
+    private static final Pattern CIF_PREFIX_PAT = Pattern.compile("^(?:cif|khách hàng|kh|customer)\\s*[:#-]?\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACC_PREFIX_PAT = Pattern.compile("^(?:tài khoản|stk|tk|số tk|account|acc)\\s*[:#-]?\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 
     public GlobalSearchService(
             MockCustomerProfileService customerProfileService,
@@ -76,37 +81,72 @@ public class GlobalSearchService {
     }
 
     public Map<String, Object> search(String query) {
-        String q = query != null ? query.trim().toLowerCase() : "";
+        String raw = query != null ? query.trim() : "";
+        String lowerRaw = raw.toLowerCase();
+
+        // 1. Phân tích ngữ cảnh tìm kiếm (Explicit prefix detection)
+        String specificType = null; // "CIF", "ACCOUNT" or null
+        String cleanTarget = lowerRaw;
+
+        Matcher cifMatcher = CIF_PREFIX_PAT.matcher(raw);
+        if (cifMatcher.matches()) {
+            specificType = "CIF";
+            cleanTarget = cifMatcher.group(1).trim().toLowerCase();
+        } else {
+            Matcher accMatcher = ACC_PREFIX_PAT.matcher(raw);
+            if (accMatcher.matches()) {
+                specificType = "ACCOUNT";
+                cleanTarget = accMatcher.group(1).trim().toLowerCase();
+            }
+        }
+
         List<SearchResultCategory> categories = new ArrayList<>();
 
-        // 1. Tìm kiếm Tài khoản (Accounts)
-        List<SearchResultItem> accountItems = searchAccounts(q);
-        if (!accountItems.isEmpty()) {
-            categories.add(new SearchResultCategory("ACCOUNTS", "Tài khoản thanh toán & Tiền gửi", accountItems));
+        // Nếu người dùng chỉ định rõ tìm CIF: chỉ trả kết quả Khách hàng khớp với giá trị đó
+        if ("CIF".equals(specificType)) {
+            List<SearchResultItem> customerItems = searchCustomers(cleanTarget, true);
+            if (!customerItems.isEmpty()) {
+                categories.add(new SearchResultCategory("CUSTOMERS", "Hồ sơ Khách hàng (CIF 360)", customerItems));
+            }
         }
-
-        // 2. Tìm kiếm Khách hàng / CIF (Customers)
-        List<SearchResultItem> customerItems = searchCustomers(q);
-        if (!customerItems.isEmpty()) {
-            categories.add(new SearchResultCategory("CUSTOMERS", "Hồ sơ Khách hàng (CIF 360)", customerItems));
+        // Nếu người dùng chỉ định rõ tìm Tài khoản: chỉ trả kết quả Tài khoản khớp với giá trị đó
+        else if ("ACCOUNT".equals(specificType)) {
+            List<SearchResultItem> accountItems = searchAccounts(cleanTarget, true);
+            if (!accountItems.isEmpty()) {
+                categories.add(new SearchResultCategory("ACCOUNTS", "Tài khoản thanh toán & Tiền gửi", accountItems));
+            }
         }
+        // Tìm kiếm toàn cục (General search)
+        else {
+            // 1. Tìm kiếm Tài khoản (Accounts)
+            List<SearchResultItem> accountItems = searchAccounts(cleanTarget, false);
+            if (!accountItems.isEmpty()) {
+                categories.add(new SearchResultCategory("ACCOUNTS", "Tài khoản thanh toán & Tiền gửi", accountItems));
+            }
 
-        // 3. Tìm kiếm Quy trình & Biểu phí (Policies & Knowledge)
-        List<SearchResultItem> policyItems = searchPolicies(q);
-        if (!policyItems.isEmpty()) {
-            categories.add(new SearchResultCategory("POLICIES", "Quy trình & Biểu phí nghiệp vụ", policyItems));
-        }
+            // 2. Tìm kiếm Khách hàng / CIF (Customers)
+            List<SearchResultItem> customerItems = searchCustomers(cleanTarget, false);
+            if (!customerItems.isEmpty()) {
+                categories.add(new SearchResultCategory("CUSTOMERS", "Hồ sơ Khách hàng (CIF 360)", customerItems));
+            }
 
-        // 4. Mạng lưới Chi nhánh / PGD (Branches)
-        List<SearchResultItem> branchItems = searchBranches(q);
-        if (!branchItems.isEmpty()) {
-            categories.add(new SearchResultCategory("BRANCHES", "Chi nhánh & Phòng giao dịch", branchItems));
-        }
+            // 3. Tìm kiếm Quy trình & Biểu phí (Policies & Knowledge)
+            List<SearchResultItem> policyItems = searchPolicies(cleanTarget);
+            if (!policyItems.isEmpty()) {
+                categories.add(new SearchResultCategory("POLICIES", "Quy trình & Biểu phí nghiệp vụ", policyItems));
+            }
 
-        // 5. Thao tác nhanh & Phím tắt AI (Quick Action Shortcuts)
-        List<SearchResultItem> actionItems = searchActions(q);
-        if (!actionItems.isEmpty()) {
-            categories.add(new SearchResultCategory("ACTIONS", "Thao tác giao dịch nhanh", actionItems));
+            // 4. Mạng lưới Chi nhánh / PGD (Branches)
+            List<SearchResultItem> branchItems = searchBranches(cleanTarget);
+            if (!branchItems.isEmpty()) {
+                categories.add(new SearchResultCategory("BRANCHES", "Chi nhánh & Phòng giao dịch", branchItems));
+            }
+
+            // 5. Thao tác nhanh & Phím tắt AI (Quick Action Shortcuts)
+            List<SearchResultItem> actionItems = searchActions(cleanTarget);
+            if (!actionItems.isEmpty()) {
+                categories.add(new SearchResultCategory("ACTIONS", "Thao tác giao dịch nhanh", actionItems));
+            }
         }
 
         int totalResults = categories.stream().mapToInt(c -> c.getItems().size()).sum();
@@ -118,7 +158,7 @@ public class GlobalSearchService {
         return response;
     }
 
-    private List<SearchResultItem> searchAccounts(String q) {
+    private List<SearchResultItem> searchAccounts(String target, boolean isStrict) {
         List<SearchResultItem> list = new ArrayList<>();
         List<Map<String, Object>> mockAccounts = List.of(
             Map.of("number", "3456789", "name", "Nguyễn Minh Anh", "cif", "CIF-0001842", "balance", "250.000.000 VND", "type", "Tài khoản thanh toán VND", "status", "Hoạt động"),
@@ -131,9 +171,18 @@ public class GlobalSearchService {
             String num = (String) acc.get("number");
             String name = (String) acc.get("name");
             String cif = (String) acc.get("cif");
-            String type = (String) acc.get("type");
 
-            if (q.isEmpty() || num.toLowerCase().contains(q) || name.toLowerCase().contains(q) || cif.toLowerCase().contains(q) || q.contains("tài khoản") || q.contains("stk")) {
+            boolean match;
+            if (target.isEmpty()) {
+                match = true;
+            } else if (isStrict) {
+                // Strict: must match account number or holder name
+                match = num.toLowerCase().contains(target) || name.toLowerCase().contains(target);
+            } else {
+                match = num.toLowerCase().contains(target) || name.toLowerCase().contains(target) || cif.toLowerCase().contains(target);
+            }
+
+            if (match) {
                 list.add(new SearchResultItem(
                     num,
                     num + " · " + name,
@@ -150,7 +199,7 @@ public class GlobalSearchService {
         return list;
     }
 
-    private List<SearchResultItem> searchCustomers(String q) {
+    private List<SearchResultItem> searchCustomers(String target, boolean isStrict) {
         List<SearchResultItem> list = new ArrayList<>();
         List<Map<String, Object>> mockCustomers = List.of(
             Map.of("cif", "CIF-0001842", "name", "Nguyễn Minh Anh", "cccd", "001092003847", "phone", "0987654321", "segment", "DIAMOND VIP", "job", "Chuyên gia CNTT · Hà Nội", "risk", "LOW"),
@@ -164,7 +213,17 @@ public class GlobalSearchService {
             String cccd = (String) cust.get("cccd");
             String phone = (String) cust.get("phone");
 
-            if (q.isEmpty() || cif.toLowerCase().contains(q) || name.toLowerCase().contains(q) || cccd.contains(q) || phone.contains(q) || q.contains("cif") || q.contains("khách hàng")) {
+            boolean match;
+            if (target.isEmpty()) {
+                match = true;
+            } else if (isStrict) {
+                // Strict: only match CIF or Name
+                match = cif.toLowerCase().contains(target) || name.toLowerCase().contains(target);
+            } else {
+                match = cif.toLowerCase().contains(target) || name.toLowerCase().contains(target) || cccd.contains(target) || phone.contains(target);
+            }
+
+            if (match) {
                 list.add(new SearchResultItem(
                     cif,
                     cif + " · " + name,
@@ -178,10 +237,44 @@ public class GlobalSearchService {
                 ));
             }
         }
+
+        // Dynamic On-Demand Resolution: Nếu người dùng tìm kiếm một mã CIF hợp lệ nhưng chưa có trong mock cố định
+        if (list.isEmpty() && !target.isEmpty()) {
+            String normalizedCif = customerProfileService.normalizeCif(target);
+            if (target.matches("(?i)(?:cif-)?\\d{3,10}")) {
+                customerProfileService.ensureCustomerExists(normalizedCif);
+                Map<String, Object> dynamicProfile = customerProfileService.getCustomerProfile(normalizedCif);
+                if (dynamicProfile != null && !dynamicProfile.containsKey("error")) {
+                    String name = (String) dynamicProfile.getOrDefault("displayName", "Khách hàng " + normalizedCif);
+                    String segment = (String) dynamicProfile.getOrDefault("segment", "STANDARD");
+                    String idMasked = (String) dynamicProfile.getOrDefault("identityMasked", "001••••88");
+
+                    Map<String, Object> payload = new LinkedHashMap<>(dynamicProfile);
+                    payload.put("cif", normalizedCif);
+                    payload.put("name", name);
+                    payload.put("cccd", idMasked);
+
+                    list.add(new SearchResultItem(
+                        normalizedCif,
+                        normalizedCif + " · " + name,
+                        "CCCD: " + idMasked + " · Hạng: " + segment + " · Tự động khởi tạo từ Core",
+                        segment,
+                        "purple",
+                        "user",
+                        "VIEW_CUSTOMER",
+                        "khách hàng " + normalizedCif,
+                        payload
+                    ));
+                }
+            }
+        }
+
         return list;
     }
 
-    private List<SearchResultItem> searchPolicies(String q) {
+    private List<SearchResultItem> searchPolicies(String target) {
+        if (target.isEmpty()) return List.of();
+
         List<SearchResultItem> list = new ArrayList<>();
         List<Map<String, String>> mockPolicies = List.of(
             Map.of("id", "POL-001", "title", "Quy trình nộp tiền mặt tại quầy", "sub", "Hạn mức tối đa GDV 500tr, kiểm soát viên duyệt trên 500tr", "prompt", "Quy trình nộp tiền mặt tại quầy như thế nào?"),
@@ -193,7 +286,7 @@ public class GlobalSearchService {
         for (Map<String, String> pol : mockPolicies) {
             String title = pol.get("title");
             String sub = pol.get("sub");
-            if (q.isEmpty() || title.toLowerCase().contains(q) || sub.toLowerCase().contains(q) || q.contains("quy trình") || q.contains("biểu phí") || q.contains("chính sách")) {
+            if (title.toLowerCase().contains(target) || sub.toLowerCase().contains(target)) {
                 list.add(new SearchResultItem(
                     pol.get("id"),
                     title,
@@ -210,7 +303,9 @@ public class GlobalSearchService {
         return list;
     }
 
-    private List<SearchResultItem> searchBranches(String q) {
+    private List<SearchResultItem> searchBranches(String target) {
+        if (target.isEmpty()) return List.of();
+
         List<SearchResultItem> list = new ArrayList<>();
         List<Map<String, String>> mockBranches = List.of(
             Map.of("id", "CN-SGD-01", "name", "Chi nhánh Sở Giao Dịch Hà Nội", "addr", "54 Liễu Giai, Ba Đình, Hà Nội · Hotline: 1900-1088"),
@@ -221,7 +316,7 @@ public class GlobalSearchService {
         for (Map<String, String> br : mockBranches) {
             String name = br.get("name");
             String addr = br.get("addr");
-            if (q.isEmpty() || name.toLowerCase().contains(q) || addr.toLowerCase().contains(q) || q.contains("chi nhánh") || q.contains("pgd") || q.contains("địa chỉ")) {
+            if (name.toLowerCase().contains(target) || addr.toLowerCase().contains(target)) {
                 list.add(new SearchResultItem(
                     br.get("id"),
                     name,
@@ -238,7 +333,9 @@ public class GlobalSearchService {
         return list;
     }
 
-    private List<SearchResultItem> searchActions(String q) {
+    private List<SearchResultItem> searchActions(String target) {
+        if (target.isEmpty()) return List.of();
+
         List<SearchResultItem> list = new ArrayList<>();
         List<Map<String, String>> actions = List.of(
             Map.of("id", "act-deposit", "title", "Nộp tiền mặt tự điền", "sub", "Tạo bản nháp nộp tiền mặt vào tài khoản", "prompt", "Nộp tiền 50tr vào tài khoản 3456789"),
@@ -252,7 +349,7 @@ public class GlobalSearchService {
         for (Map<String, String> act : actions) {
             String title = act.get("title");
             String sub = act.get("sub");
-            if (q.isEmpty() || title.toLowerCase().contains(q) || sub.toLowerCase().contains(q) || q.contains("nộp") || q.contains("rút") || q.contains("chuyển") || q.contains("tỷ giá") || q.contains("sao kê")) {
+            if (title.toLowerCase().contains(target) || sub.toLowerCase().contains(target)) {
                 list.add(new SearchResultItem(
                     act.get("id"),
                     title,
