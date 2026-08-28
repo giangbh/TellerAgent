@@ -5,6 +5,7 @@ import com.dnse.teller.mcp.McpToolRegistry;
 import com.dnse.teller.model.Intent;
 import com.dnse.teller.model.Plan;
 import com.dnse.teller.model.Plan.PlanStep;
+import com.dnse.teller.security.PiiMaskingService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,10 +43,12 @@ public class DeepSeekClient {
     private final McpToolRegistry toolRegistry;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final PiiMaskingService piiMaskingService;
 
-    public DeepSeekClient(McpToolRegistry toolRegistry, ObjectMapper objectMapper) {
+    public DeepSeekClient(McpToolRegistry toolRegistry, ObjectMapper objectMapper, PiiMaskingService piiMaskingService) {
         this.toolRegistry = toolRegistry;
         this.objectMapper = objectMapper;
+        this.piiMaskingService = piiMaskingService;
         this.httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -77,6 +80,10 @@ public class DeepSeekClient {
         }
 
         try {
+            // 1. PII Masking Outbound: Ẩn toàn bộ số tài khoản, CIF, họ tên khách hàng thành <ACCOUNT_X>, <PERSON_NAME_X>
+            PiiMaskingService.PiiContext piiCtx = piiMaskingService.maskPromptAndEntities(prompt, currentEntities);
+            String maskedPrompt = piiCtx.getMaskedText();
+
             List<Map<String, Object>> toolsManifest = buildToolsManifest();
 
             String systemPrompt = """
@@ -84,6 +91,10 @@ public class DeepSeekClient {
                 Nhiệm vụ của bạn là phân tích câu lệnh ngôn ngữ tự nhiên tiếng Việt từ Giao dịch viên,
                 nhận diện ý định, trích xuất chính xác các thực thể (số tiền, số tài khoản, mã ngân hàng, loại ngoại tệ, chi nhánh, mã CIF),
                 và lựa chọn đúng các công cụ MCP phù hợp để thực thi qua Function Calling (Tools Call).
+
+                LƯU Ý BẢO MẬT PII:
+                Các thông tin nhạy cảm của khách hàng đã được thay thế bằng token định danh (ví dụ: <ACCOUNT_1>, <PERSON_NAME_1>, <CUSTOMER_REF_1>).
+                Hãy giữ nguyên các token này khi điền vào tham số function calling (ví dụ: accountNumber: "<ACCOUNT_1>").
 
                 Quy tắc chọn công cụ MCP:
                 1. Nộp tiền mặt vào tài khoản -> chọn tool `account_resolve_by_number` (tham số `accountNumber`), `cash_limit_check` (tham số `amount`).
@@ -104,7 +115,7 @@ public class DeepSeekClient {
 
             List<Map<String, Object>> messages = List.of(
                 Map.of("role", "system", "content", systemPrompt),
-                Map.of("role", "user", "content", prompt)
+                Map.of("role", "user", "content", maskedPrompt)
             );
 
             Map<String, Object> requestBody = new LinkedHashMap<>();
@@ -140,6 +151,9 @@ public class DeepSeekClient {
 
             JsonNode messageNode = choices.get(0).path("message");
             String content = messageNode.path("content").asText(null);
+            if (content != null) {
+                content = piiCtx.unmask(content);
+            }
             JsonNode toolCallsNode = messageNode.path("tool_calls");
 
             if (toolCallsNode.isArray() && !toolCallsNode.isEmpty()) {
@@ -153,7 +167,9 @@ public class DeepSeekClient {
                     String argsJson = func.path("arguments").asText("{}");
 
                     Map<String, Object> args = objectMapper.readValue(argsJson, new TypeReference<Map<String, Object>>() {});
-                    extractedEntities.putAll(args);
+                    // 2. PII Inbound Re-hydration: Khôi phục token <ACCOUNT_X> thành số tài khoản thực tế
+                    Map<String, Object> unmaskedArgs = piiCtx.unmaskMap(args);
+                    extractedEntities.putAll(unmaskedArgs);
 
                     // Find corresponding MCP capability ID
                     String capabilityId = resolveCapabilityId(funcName);
@@ -310,7 +326,10 @@ public class DeepSeekClient {
         }
 
         try {
-            String rawJson = objectMapper.writeValueAsString(toolOutputs);
+            // 1. PII Masking Outbound: Ẩn thông tin nhạy cảm trong prompt và JSON kết quả tool
+            PiiMaskingService.PiiContext piiCtx = piiMaskingService.maskToolOutputs(userPrompt, toolOutputs);
+            String maskedPrompt = piiCtx.getMaskedText();
+            String maskedJson = piiCtx.getMaskedJson();
 
             String systemPrompt = """
                 Bạn là AI Teller Copilot chuyên nghiệp và thông minh cho Giao dịch viên ngân hàng.
@@ -319,11 +338,12 @@ public class DeepSeekClient {
                 1. Trả lời đúng, đầy đủ và trực diện tất cả các ý trong câu hỏi của GDV.
                 2. Ưu tiên sử dụng các số liệu chuẩn xác đã được hệ thống tính toán sẵn trong phần 'analytics' / 'summary' (như tổng dòng tiền vào Inflow, tổng ra Outflow, giao dịch lớn nhất, số dư ròng Net Cashflow, điểm tín dụng, lãi suất) để đảm bảo độ chính xác số học tuyệt đối 100%.
                 3. Kết hợp đối chiếu danh sách chi tiết các giao dịch để phân tích xu hướng chi tiêu, cơ cấu dòng tiền và đưa ra nhận định chuyên môn sắc bén cho GDV.
-                4. Trình bày rõ ràng, mạch lạc, dễ đọc bằng các gạch đầu dòng bullet points.
-                5. Định dạng tiền tệ VND chuyên nghiệp (ví dụ: 45.000.000 VND hoặc 45 tr VND).
+                4. Giữ nguyên các định danh mã hóa PII (như <ACCOUNT_1>, <PERSON_NAME_1>, <CUSTOMER_REF_1>) trong câu trả lời để hệ thống tự động giải mã.
+                5. Trình bày rõ ràng, mạch lạc, dễ đọc bằng các gạch đầu dòng bullet points.
+                6. Định dạng tiền tệ VND chuyên nghiệp (ví dụ: 45.000.000 VND hoặc 45 tr VND).
                 """;
 
-            String userContent = "Yêu cầu của GDV: \"" + userPrompt + "\"\n\nDữ liệu MCP Tools trả về:\n" + rawJson;
+            String userContent = "Yêu cầu của GDV: \"" + maskedPrompt + "\"\n\nDữ liệu MCP Tools trả về:\n" + maskedJson;
 
             List<Map<String, Object>> messages = List.of(
                 Map.of("role", "system", "content", systemPrompt),
@@ -353,7 +373,9 @@ public class DeepSeekClient {
                 if (choices.isArray() && !choices.isEmpty()) {
                     String content = choices.get(0).path("message").path("content").asText();
                     if (content != null && !content.trim().isEmpty()) {
-                        return Optional.of(content.trim());
+                        // 2. PII Inbound Re-hydration: Khôi phục token thành thông tin thực tế hiển thị cho GDV
+                        String unmaskedAnswer = piiCtx.unmask(content);
+                        return Optional.of(unmaskedAnswer.trim());
                     }
                 }
             }
