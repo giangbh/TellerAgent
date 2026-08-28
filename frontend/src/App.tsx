@@ -7,6 +7,8 @@ import { LiveDraftForm } from './components/LiveDraftForm';
 import { ControlGatePanel } from './components/ControlGatePanel';
 import { McpInspectorModal } from './components/McpInspectorModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { AccountDetailModal } from './components/AccountDetailModal';
+import { Customer360Modal } from './components/Customer360Modal';
 import { BootstrapData, Session } from './types/teller';
 import * as api from './api/tellerApi';
 import { SearchResultItem } from './api/tellerApi';
@@ -18,6 +20,8 @@ export const App: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isMcpOpen, setIsMcpOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [selectedAccountNumber, setSelectedAccountNumber] = useState<string | null>(null);
+  const [selectedCif, setSelectedCif] = useState<string | null>(null);
 
   // Global Keyboard shortcut for Omnibox (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -179,12 +183,12 @@ export const App: React.FC = () => {
   };
 
   const handleSelectSearchResult = (item: SearchResultItem) => {
-    if (item.prompt) {
-      handleSendMessage(item.prompt);
+    if (item.actionType === 'VIEW_ACCOUNT') {
+      setSelectedAccountNumber(item.id);
     } else if (item.actionType === 'VIEW_CUSTOMER') {
-      handleSendMessage('khách hàng ' + item.id);
-    } else if (item.actionType === 'VIEW_ACCOUNT') {
-      handleSendMessage('tài khoản ' + item.id);
+      setSelectedCif(item.id);
+    } else if (item.prompt) {
+      handleSendMessage(item.prompt);
     }
   };
 
@@ -386,6 +390,29 @@ export const App: React.FC = () => {
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onSelectAction={handleSelectSearchResult}
+      />
+
+      {/* Direct Account Details Modal */}
+      <AccountDetailModal
+        isOpen={!!selectedAccountNumber}
+        accountNumber={selectedAccountNumber}
+        onClose={() => setSelectedAccountNumber(null)}
+        onOpenCustomer360={(cif) => setSelectedCif(cif)}
+        onTriggerAction={handleSendMessage}
+      />
+
+      {/* Direct Customer 360 Profile Modal */}
+      <Customer360Modal
+        isOpen={!!selectedCif}
+        cif={selectedCif}
+        onClose={() => setSelectedCif(null)}
+        onOpenAccount={(acc) => setSelectedAccountNumber(acc)}
+        onTriggerAction={handleSendMessage}
+        onSelectAsActiveCustomer={(cif) => {
+          if (session) {
+            setSession({ ...session, customerRef: cif });
+          }
+        }}
       />
 
     </div>

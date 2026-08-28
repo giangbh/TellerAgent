@@ -494,20 +494,38 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
                 <div
                   style={{
-                    background: 'rgba(59, 130, 246, 0.08)',
+                    background: previewItem.actionType === 'VIEW_ACCOUNT'
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : previewItem.actionType === 'VIEW_CUSTOMER'
+                      ? 'rgba(139, 92, 246, 0.08)'
+                      : 'rgba(59, 130, 246, 0.08)',
                     borderRadius: '8px',
                     padding: '10px 12px',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    border: `1px solid ${
+                      previewItem.actionType === 'VIEW_ACCOUNT'
+                        ? 'rgba(16, 185, 129, 0.2)'
+                        : previewItem.actionType === 'VIEW_CUSTOMER'
+                        ? 'rgba(139, 92, 246, 0.2)'
+                        : 'rgba(59, 130, 246, 0.2)'
+                    }`,
                     fontSize: '0.78rem',
-                    color: '#93c5fd',
+                    color: previewItem.actionType === 'VIEW_ACCOUNT'
+                      ? '#6ee7b7'
+                      : previewItem.actionType === 'VIEW_CUSTOMER'
+                      ? '#c084fc'
+                      : '#93c5fd',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                   }}
                 >
-                  <Sparkles size={14} style={{ color: '#60a5fa', flexShrink: 0 }} />
+                  <Sparkles size={14} style={{ flexShrink: 0 }} />
                   <span>
-                    Hành động: Nhấn <strong>Enter</strong> hoặc click để AI Copilot tự động nạp ngữ cảnh và xử lý.
+                    {previewItem.actionType === 'VIEW_ACCOUNT'
+                      ? 'Hành động: Nhấn Enter hoặc click để mở trực tiếp màn hình Chi tiết Tài khoản.'
+                      : previewItem.actionType === 'VIEW_CUSTOMER'
+                      ? 'Hành động: Nhấn Enter hoặc click để mở trực tiếp màn hình Hồ Sơ Khách Hàng 360.'
+                      : 'Hành động: Nhấn Enter hoặc click để AI Copilot tự động phân tích và xử lý.'}
                   </span>
                 </div>
               </div>
@@ -530,9 +548,20 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                   justifyContent: 'center',
                   padding: '10px',
                   fontSize: '0.85rem',
+                  background: previewItem.actionType === 'VIEW_ACCOUNT'
+                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                    : previewItem.actionType === 'VIEW_CUSTOMER'
+                    ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+                    : undefined,
                 }}
               >
-                <span>Thực thi / Mở ngữ cảnh</span>
+                <span>
+                  {previewItem.actionType === 'VIEW_ACCOUNT'
+                    ? 'Mở màn hình Tài khoản'
+                    : previewItem.actionType === 'VIEW_CUSTOMER'
+                    ? 'Mở màn hình Khách hàng 360'
+                    : 'Thực thi với AI Copilot'}
+                </span>
                 <ArrowRight size={15} />
               </button>
             )}

@@ -177,3 +177,16 @@ export async function searchGlobal(query: string): Promise<GlobalSearchResponse>
   if (!res.ok) throw new Error('Lỗi khi tìm kiếm dữ liệu.');
   return res.json();
 }
+
+export async function fetchAccountDetail(accountNumber: string): Promise<Record<string, any>> {
+  const res = await fetch(`${API_BASE}/accounts/${accountNumber}`);
+  if (!res.ok) throw new Error(`Không tìm thấy tài khoản ${accountNumber}`);
+  return res.json();
+}
+
+export async function fetchCustomer360(cif: string): Promise<Record<string, any>> {
+  const res = await fetch(`${API_BASE}/customers/${cif}/360`);
+  if (!res.ok) throw new Error(`Không tìm thấy hồ sơ khách hàng ${cif}`);
+  return res.json();
+}
+
