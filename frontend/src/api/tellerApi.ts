@@ -147,3 +147,33 @@ export async function callMcpJsonRpc(method: string, params: Record<string, unkn
   if (!res.ok) throw new Error('Lỗi khi gọi MCP JSON-RPC endpoint.');
   return res.json();
 }
+
+export interface SearchResultItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  badgeColor: string;
+  icon: string;
+  actionType: string;
+  prompt: string;
+  payload?: Record<string, any>;
+}
+
+export interface SearchResultCategory {
+  type: string;
+  title: string;
+  items: SearchResultItem[];
+}
+
+export interface GlobalSearchResponse {
+  query: string;
+  totalResults: number;
+  categories: SearchResultCategory[];
+}
+
+export async function searchGlobal(query: string): Promise<GlobalSearchResponse> {
+  const res = await fetch(`${API_BASE}/search/global?q=${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error('Lỗi khi tìm kiếm dữ liệu.');
+  return res.json();
+}

@@ -1,15 +1,22 @@
 import React from 'react';
-import { ShieldCheck, Cpu, RefreshCw, Layers, UserCheck } from 'lucide-react';
+import { ShieldCheck, Cpu, RefreshCw, Layers, UserCheck, Search, Command } from 'lucide-react';
 import { Session } from '../types/teller';
 
 interface HeaderProps {
   session: Session | null;
   onNewSession: () => void;
   onOpenMcp: () => void;
+  onOpenSearch: () => void;
   loading: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ session, onNewSession, onOpenMcp, loading }) => {
+export const Header: React.FC<HeaderProps> = ({
+  session,
+  onNewSession,
+  onOpenMcp,
+  onOpenSearch,
+  loading,
+}) => {
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'POSTED':
@@ -64,6 +71,42 @@ export const Header: React.FC<HeaderProps> = ({ session, onNewSession, onOpenMcp
           </div>
         </div>
 
+        {/* Global Search Omnibox Trigger */}
+        <button
+          onClick={onOpenSearch}
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '10px',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            color: '#9ca3af',
+            cursor: 'pointer',
+            minWidth: '280px',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#60a5fa';
+            e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+          }}
+          title="Tìm kiếm nhanh toàn cục (Ctrl + K / ⌘K)"
+        >
+          <Search size={16} color="#60a5fa" />
+          <span style={{ fontSize: '0.82rem', flex: 1, textAlign: 'left' }}>
+            Tìm tài khoản, CIF, quy trình...
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(255, 255, 255, 0.08)', padding: '2px 6px', borderRadius: '5px', fontSize: '0.7rem', color: '#e5e7eb' }}>
+            <Command size={11} />
+            <span>K</span>
+          </div>
+        </button>
+
         {/* Counter Info Badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {session && (
@@ -89,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({ session, onNewSession, onOpenMcp
           <button 
             className="btn btn-secondary" 
             onClick={onOpenMcp}
-            title="Xem danh mục 14 MCP Banking Tools và JSON-RPC logs"
+            title="Xem danh mục 22 MCP Banking Tools và JSON-RPC logs"
             style={{ fontSize: '0.8rem', padding: '8px 14px' }}
           >
             <Layers size={15} color="#8b5cf6" />

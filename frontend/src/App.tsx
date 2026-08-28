@@ -6,8 +6,10 @@ import { PlanViewer } from './components/PlanViewer';
 import { LiveDraftForm } from './components/LiveDraftForm';
 import { ControlGatePanel } from './components/ControlGatePanel';
 import { McpInspectorModal } from './components/McpInspectorModal';
+import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { BootstrapData, Session } from './types/teller';
 import * as api from './api/tellerApi';
+import { SearchResultItem } from './api/tellerApi';
 
 export const App: React.FC = () => {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
@@ -15,6 +17,19 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isMcpOpen, setIsMcpOpen] = useState<boolean>(false);
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+
+  // Global Keyboard shortcut for Omnibox (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Initialize Bootstrap & First Session
   useEffect(() => {
@@ -163,14 +178,25 @@ export const App: React.FC = () => {
     localStorage.setItem('teller_chat_width', w.toString());
   };
 
+  const handleSelectSearchResult = (item: SearchResultItem) => {
+    if (item.prompt) {
+      handleSendMessage(item.prompt);
+    } else if (item.actionType === 'VIEW_CUSTOMER') {
+      handleSendMessage('khách hàng ' + item.id);
+    } else if (item.actionType === 'VIEW_ACCOUNT') {
+      handleSendMessage('tài khoản ' + item.id);
+    }
+  };
+
   return (
     <div style={{ maxWidth: '1800px', margin: '0 auto', padding: '24px', userSelect: isDragging ? 'none' : 'auto' }}>
       
-      {/* Top Header */}
+      {/* Top Header with Omnibox */}
       <Header
         session={session}
         onNewSession={handleNewSession}
         onOpenMcp={() => setIsMcpOpen(true)}
+        onOpenSearch={() => setIsSearchOpen(true)}
         loading={loading}
       />
 
@@ -354,6 +380,13 @@ export const App: React.FC = () => {
           capabilities={bootstrap.capabilities}
         />
       )}
+
+      {/* Global Search Omnibox Modal (Ctrl+K / ⌘K) */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onSelectAction={handleSelectSearchResult}
+      />
 
     </div>
   );
