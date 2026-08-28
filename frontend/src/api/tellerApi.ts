@@ -21,16 +21,21 @@ export function setCurrentActor(actor: ActorIdentity) {
   currentActor = actor;
 }
 
+function safeHeaderValue(val: string): string {
+  // Browser fetch headers only allow ISO-8859-1 (ASCII-safe) characters
+  return /^[\x00-\x7F]*$/.test(val) ? val : encodeURIComponent(val);
+}
+
 function authHeaders(): Record<string, string> {
   if (!currentActor) {
     throw new Error('Chưa đăng nhập: không xác định được danh tính người dùng.');
   }
   return {
     'Content-Type': 'application/json',
-    'X-Actor-Id': currentActor.id,
-    'X-Actor-Name': currentActor.name,
+    'X-Actor-Id': safeHeaderValue(currentActor.id),
+    'X-Actor-Name': safeHeaderValue(currentActor.name),
     'X-Actor-Role': currentActor.role,
-    ...(currentActor.branchId ? { 'X-Actor-Branch': currentActor.branchId } : {}),
+    ...(currentActor.branchId ? { 'X-Actor-Branch': safeHeaderValue(currentActor.branchId) } : {}),
   };
 }
 

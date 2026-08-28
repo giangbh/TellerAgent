@@ -43,8 +43,15 @@ public class ActorResolver {
 
         String userId = trimToNull(request.getHeader(HEADER_ID));
         String role = trimToNull(request.getHeader(HEADER_ROLE));
-        String name = trimToNull(request.getHeader(HEADER_NAME));
+        String rawName = trimToNull(request.getHeader(HEADER_NAME));
         String branch = trimToNull(request.getHeader(HEADER_BRANCH));
+
+        String name = rawName;
+        if (name != null && name.contains("%")) {
+            try {
+                name = java.net.URLDecoder.decode(name, java.nio.charset.StandardCharsets.UTF_8);
+            } catch (Exception ignored) {}
+        }
 
         if (userId == null) {
             throw new AuthorizationException("Request thiếu " + HEADER_ID + ".", "ACTOR_ID_MISSING", 401);
