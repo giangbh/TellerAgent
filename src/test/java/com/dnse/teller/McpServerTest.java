@@ -43,7 +43,7 @@ public class McpServerTest {
 
         Map<?, ?> result = (Map<?, ?>) res.getResult();
         List<?> tools = (List<?>) result.get("tools");
-        assertEquals(23, tools.size());
+        assertEquals(24, tools.size());
     }
 
     @Test
@@ -68,9 +68,9 @@ public class McpServerTest {
     @Test
     void testRejectUnauthorizedCaller() {
         JsonRpcRequest req = new JsonRpcRequest(4, "tools/call", Map.of(
-            "name", "core_transfer_execute",
-            "arguments", Map.of("amount", 50_000_000L),
-            "caller", "customer_context_agent", // Unauthorized!
+            "name", "customer_profile_read",
+            "arguments", Map.of("customerRef", "CIF-0001842"),
+            "caller", "unauthorized_external_agent", // Unauthorized!
             "workflow", "domestic_transfer"
         ));
         JsonRpcResponse res = mcpServer.handleRequest(req);
@@ -82,20 +82,19 @@ public class McpServerTest {
     }
 
     @Test
-    void testRejectMissingIdempotencyKeyOnFinancialWrite() {
+    void testRejectFinancialWriteOverMcp() {
         JsonRpcRequest req = new JsonRpcRequest(5, "tools/call", Map.of(
             "name", "core_transfer_execute",
             "arguments", Map.of("amount", 50_000_000L, "beneficiaryAccount", "123456"),
             "caller", "business_orchestrator",
             "workflow", "domestic_transfer"
-            // Missing idempotencyKey!
         ));
         JsonRpcResponse res = mcpServer.handleRequest(req);
 
         assertNotNull(res);
         assertNotNull(res.getError());
         assertEquals(-32001, res.getError().getCode());
-        assertTrue(res.getError().getMessage().contains("idempotency key"));
+        assertTrue(res.getError().getMessage().contains("không được phơi ra qua endpoint MCP"));
     }
 
     @Test

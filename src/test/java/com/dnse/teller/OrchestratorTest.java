@@ -19,7 +19,7 @@ public class OrchestratorTest {
 
     @Test
     void testDomesticTransferCompleteFlow() throws Exception {
-        Session opened = orchestrator.createSession(Map.of());
+        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
         Session state = orchestrator.processMessage(
             opened.getSessionId(),
             "Chuyển 50 triệu cho Nguyễn Văn An tại Vietcombank, số tài khoản 012345678901"
@@ -39,7 +39,7 @@ public class OrchestratorTest {
 
     @Test
     void testMissingFieldsInterruptAndResume() throws Exception {
-        Session opened = orchestrator.createSession(Map.of());
+        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
         Session waiting = orchestrator.processMessage(opened.getSessionId(), "Tôi muốn chuyển 25 triệu sang Vietcombank");
 
         assertEquals("WAITING_HUMAN_INPUT", waiting.getStatus());
@@ -55,32 +55,34 @@ public class OrchestratorTest {
 
     @Test
     void testMakerCheckerApprovalAndCoreExecution() throws Exception {
-        Session opened = orchestrator.createSession(Map.of());
+        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
         orchestrator.processMessage(opened.getSessionId(), "Chuyển 50 triệu cho Nguyễn Văn An tại VCB, số tài khoản 012345678901");
 
-        // Teller cannot approve before customer
-        assertThrows(OrchestratorException.class, () -> orchestrator.approve(opened.getSessionId(), "teller"));
+        // Teller cannot approve before customer consent is recorded
+        assertThrows(OrchestratorException.class,
+            () -> orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER));
 
-        Session cApproved = orchestrator.approve(opened.getSessionId(), "customer");
+        Session cApproved = orchestrator.recordCustomerConsent(
+            opened.getSessionId(), TestActors.TELLER, "OTP", "OTP-884211");
         assertFalse(cApproved.getControl().isPostingAllowed());
 
-        Session tApproved = orchestrator.approve(opened.getSessionId(), "teller");
+        Session tApproved = orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
         assertTrue(tApproved.getControl().isPostingAllowed());
         assertEquals("READY_TO_POST", tApproved.getStatus());
 
-        Session posted = orchestrator.execute(opened.getSessionId());
+        Session posted = orchestrator.execute(opened.getSessionId(), TestActors.TELLER);
         assertEquals("POSTED", posted.getStatus());
         assertNotNull(posted.getExecution());
         assertTrue(posted.getExecution().getCoreReference().startsWith("FT"));
 
         // Idempotency: execute again returns identical reference
-        Session repeated = orchestrator.execute(opened.getSessionId());
+        Session repeated = orchestrator.execute(opened.getSessionId(), TestActors.TELLER);
         assertEquals(posted.getExecution().getCoreReference(), repeated.getExecution().getCoreReference());
     }
 
     @Test
     void testRiskReviewBlocksPosting() throws Exception {
-        Session opened = orchestrator.createSession(Map.of());
+        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
         Session state = orchestrator.processMessage(
             opened.getSessionId(),
             "Chuyển 220 triệu cho Trần Thị Lan tại BIDV, số tài khoản 123456789999"
@@ -89,12 +91,13 @@ public class OrchestratorTest {
         assertEquals("RISK_REVIEW", state.getStatus());
         assertEquals("REVIEW", state.getRisk().getDecision());
         assertFalse(state.getControl().isPostingAllowed());
-        assertThrows(OrchestratorException.class, () -> orchestrator.approve(opened.getSessionId(), "customer"));
+        assertThrows(OrchestratorException.class,
+            () -> orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "OTP", "OTP-1"));
     }
 
     @Test
     void testPolicyAssistance() throws Exception {
-        Session opened = orchestrator.createSession(Map.of());
+        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
         Session state = orchestrator.processMessage(opened.getSessionId(), "Quy trình và biểu phí chuyển khoản tại quầy như thế nào?");
 
         assertEquals("ASSISTANCE_READY", state.getStatus());
@@ -105,7 +108,7 @@ public class OrchestratorTest {
 
     @Test
     void testCashDepositAutoFillAndConfirm() throws Exception {
-        Session opened = orchestrator.createSession(Map.of());
+        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
         Session draft = orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
 
         assertEquals("CASH_DEPOSIT", draft.getIntent().getType());
@@ -117,16 +120,19 @@ public class OrchestratorTest {
         assertEquals("Nguyễn Minh Anh", draft.getTransactionDraft().getAccountHolder());
         assertTrue(draft.getTransactionDraft().getValidation().getValid());
 
-        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId());
+        orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "SIGNATURE", "PHIEU-100");
+        orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
+
+        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId(), TestActors.TELLER);
         assertEquals("POSTED", posted.getStatus());
-        assertTrue(posted.getApprovals().isCustomer());
-        assertTrue(posted.getApprovals().isTeller());
+        assertEquals("GDV001", posted.getApprovals().getTellerRecord().getActorId());
+        assertEquals("GDV001", posted.getApprovals().getCustomerRecord().getRecordedByActorId());
         assertTrue(posted.getExecution().getCoreReference().startsWith("CD"));
     }
 
     @Test
     void testCashWithdrawalAutoFillAndLimitCheck() throws Exception {
-        Session opened = orchestrator.createSession(Map.of());
+        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
         Session draft = orchestrator.processMessage(opened.getSessionId(), "rút tiền 50tr từ tài khoản 3456789");
 
         assertEquals("CASH_WITHDRAWAL", draft.getIntent().getType());
@@ -136,7 +142,10 @@ public class OrchestratorTest {
         assertEquals("3456789", draft.getTransactionDraft().getAccountNumber());
         assertEquals(Boolean.TRUE, draft.getTransactionDraft().getLimit().get("sufficientFunds"));
 
-        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId());
+        orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "SIGNATURE", "PHIEU-101");
+        orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
+
+        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId(), TestActors.TELLER);
         assertEquals("POSTED", posted.getStatus());
         assertTrue(posted.getExecution().getCoreReference().startsWith("CW"));
     }

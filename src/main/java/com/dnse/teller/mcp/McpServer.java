@@ -50,7 +50,24 @@ public class McpServer {
         }
     }
 
-    public Map<String, Object> executeDirect(String caller, String workflow, String capabilityId, Map<String, Object> args, String idempotencyKey) throws Exception {
+    /**
+     * Overload tương thích ngược cho các agent chỉ-đọc (AgentSuite). Ngữ cảnh
+     * tạo ra ở đây KHÔNG mang PostingAuthorization, nên tool tài chính vẫn bị
+     * từ chối — agent không thể tự post core dù gọi qua đường này.
+     */
+    public Map<String, Object> executeDirect(String caller, String workflow, String capabilityId,
+                                             Map<String, Object> args, String idempotencyKey) throws Exception {
+        return executeDirect(new ToolCallContext(caller, workflow, idempotencyKey, null), capabilityId, args);
+    }
+
+    /**
+     * Đường gọi nội bộ, chỉ dành cho orchestrator. Không phơi ra HTTP.
+     */
+    public Map<String, Object> executeDirect(ToolCallContext context, String capabilityId, Map<String, Object> args) throws Exception {
+        if (context == null || isBlank(context.caller()) || isBlank(context.workflow())) {
+            throw new McpSecurityException("Thiếu ngữ cảnh gọi tool (caller/workflow).", "TOOL_CONTEXT_MISSING");
+        }
+
         Optional<McpTool> toolOpt = registry.resolve(capabilityId);
         if (toolOpt.isEmpty()) {
             throw new McpSecurityException("Capability không tồn tại: " + capabilityId, "UNKNOWN_CAPABILITY");
@@ -58,16 +75,22 @@ public class McpServer {
 
         McpTool tool = toolOpt.get();
         McpSecurityPolicy policy = policyProvider.getPolicy(tool.getId());
-        validatePolicy(tool.getId(), policy, caller, workflow, idempotencyKey);
+        validatePolicy(tool, policy, context.caller(), context.workflow(), context.idempotencyKey());
+
+        if (tool.isFinancialWrite() && !context.hasPostingAuthorization()) {
+            throw new McpSecurityException(
+                    tool.getId() + " yêu cầu PostingAuthorization đã được kiểm chứng.",
+                    "POSTING_AUTHORIZATION_MISSING");
+        }
 
         String startedAt = Instant.now().toString();
-        Map<String, Object> result = tool.execute(args, idempotencyKey);
+        Map<String, Object> result = tool.execute(args, context.idempotencyKey(), context);
         String completedAt = Instant.now().toString();
 
         Map<String, Object> callRecord = new LinkedHashMap<>();
         callRecord.put("capabilityId", tool.getId());
         callRecord.put("toolName", tool.getName());
-        callRecord.put("caller", caller);
+        callRecord.put("caller", context.caller());
         callRecord.put("risk", policy != null ? policy.getRiskLevel() : tool.getRisk());
         callRecord.put("sideEffect", policy != null ? policy.isSideEffect() : tool.isSideEffect());
         callRecord.put("startedAt", startedAt);
@@ -129,19 +152,33 @@ public class McpServer {
 
         McpTool tool = toolOpt.get();
         McpSecurityPolicy policy = policyProvider.getPolicy(tool.getId());
+
+        // P0-1: tool ghi sổ tài chính KHÔNG BAO GIỜ được phơi ra qua JSON-RPC công khai.
+        // Chúng chỉ đến được core qua orchestrator, sau khi qua đủ control gate.
+        if (tool.isFinancialWrite() || tool.isSideEffect() || (policy != null && policy.isSideEffect())) {
+            throw new McpSecurityException(
+                    tool.getId() + " không được phơi ra qua endpoint MCP. Hãy dùng luồng nghiệp vụ /api/sessions.",
+                    "FINANCIAL_WRITE_NOT_EXPOSED");
+        }
+
         Map<String, Object> arguments = params.get("arguments") instanceof Map ? (Map<String, Object>) params.get("arguments") : Map.of();
 
-        // RBAC Context from params or arguments
-        String caller = params.get("caller") != null ? String.valueOf(params.get("caller"))
-            : (arguments.get("_caller") != null ? String.valueOf(arguments.get("_caller")) : "business_orchestrator");
-        String workflow = params.get("workflow") != null ? String.valueOf(params.get("workflow"))
-            : (arguments.get("_workflow") != null ? String.valueOf(arguments.get("_workflow")) : "domestic_transfer");
-        String idempotencyKey = params.get("idempotencyKey") != null ? String.valueOf(params.get("idempotencyKey"))
-            : (arguments.get("_idempotencyKey") != null ? String.valueOf(arguments.get("_idempotencyKey")) : null);
+        // P0-1: không còn giá trị mặc định. Trước đây caller mặc định là
+        // "business_orchestrator" — tức danh tính đặc quyền cao nhất được cấp
+        // cho một request trống rỗng.
+        String caller = firstNonBlank(params.get("caller"), arguments.get("_caller"));
+        String workflow = firstNonBlank(params.get("workflow"), arguments.get("_workflow"));
+        String idempotencyKey = firstNonBlank(params.get("idempotencyKey"), arguments.get("_idempotencyKey"));
 
-        validatePolicy(tool.getId(), policy, caller, workflow, idempotencyKey);
+        if (isBlank(caller) || isBlank(workflow)) {
+            throw new McpSecurityException(
+                    "Lời gọi tool phải khai báo tường minh 'caller' và 'workflow'.", "TOOL_CONTEXT_MISSING");
+        }
 
-        Map<String, Object> executionResult = tool.execute(arguments, idempotencyKey);
+        validatePolicy(tool, policy, caller, workflow, idempotencyKey);
+
+        Map<String, Object> executionResult = tool.execute(
+                arguments, idempotencyKey, ToolCallContext.readOnly(caller, workflow));
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("content", List.of(
@@ -203,18 +240,61 @@ public class McpServer {
         );
     }
 
-    private void validatePolicy(String capabilityId, McpSecurityPolicy policy, String caller, String workflow, String idempotencyKey) {
-        if (policy == null) return;
+    /**
+     * P0-5: fail-closed.
+     *
+     * Bản cũ: policy == null thì return (cho qua), và danh sách rỗng cũng cho qua.
+     * Bản mới: không có policy tường minh thì từ chối; danh sách rỗng nghĩa là
+     * không ai được gọi.
+     *
+     * Ngoài ra quyền hiệu lực = GIAO của policy trong DB và khai báo cứng trong
+     * code của tool. Nhờ vậy một lần sửa policy trong DB không bao giờ nới rộng
+     * được quyền vượt quá thứ tác giả tool đã cho phép.
+     */
+    private void validatePolicy(McpTool tool, McpSecurityPolicy policy, String caller, String workflow, String idempotencyKey) {
+        String capabilityId = tool.getId();
 
-        if (policy.getAllowedCallers() != null && !policy.getAllowedCallers().isEmpty() && !policy.getAllowedCallers().contains(caller)) {
+        if (policy == null) {
+            throw new McpSecurityException(
+                    "Không có policy tường minh cho " + capabilityId + " — từ chối theo nguyên tắc fail-closed.",
+                    "POLICY_NOT_DEFINED");
+        }
+
+        Set<String> effectiveCallers = intersect(policy.getAllowedCallers(), tool.getAllowedCallers());
+        if (effectiveCallers.isEmpty() || !effectiveCallers.contains(caller)) {
             throw new McpSecurityException(caller + " không được phép gọi " + capabilityId, "TOOL_POLICY_DENIED");
         }
-        if (policy.getAllowedWorkflows() != null && !policy.getAllowedWorkflows().isEmpty() && !policy.getAllowedWorkflows().contains(workflow)) {
+
+        Set<String> effectiveWorkflows = intersect(policy.getAllowedWorkflows(), tool.getWorkflows());
+        if (effectiveWorkflows.isEmpty() || !effectiveWorkflows.contains(workflow)) {
             throw new McpSecurityException(capabilityId + " không thuộc workflow " + workflow, "INVALID_WORKFLOW");
         }
-        if (policy.isRequiresIdempotency() && (idempotencyKey == null || idempotencyKey.trim().isEmpty())) {
+
+        boolean needsIdempotency = policy.isRequiresIdempotency() || tool.isRequiresIdempotency();
+        if (needsIdempotency && isBlank(idempotencyKey)) {
             throw new McpSecurityException(capabilityId + " yêu cầu idempotency key", "IDEMPOTENCY_REQUIRED");
         }
+    }
+
+    private static Set<String> intersect(List<String> a, List<String> b) {
+        if (a == null || b == null) return Set.of();
+        Set<String> result = new LinkedHashSet<>(a);
+        result.retainAll(b);
+        return result;
+    }
+
+    private static String firstNonBlank(Object... candidates) {
+        for (Object c : candidates) {
+            if (c != null) {
+                String s = String.valueOf(c).trim();
+                if (!s.isEmpty()) return s;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 
     private Map<String, Object> maskArgs(Map<String, Object> args) {

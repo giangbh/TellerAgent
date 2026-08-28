@@ -36,7 +36,10 @@ public class McpSecurityPolicyProvider {
                 try (InputStream is = resource.getInputStream()) {
                     List<McpSecurityPolicy> defaultPolicies = objectMapper.readValue(is, new TypeReference<List<McpSecurityPolicy>>() {});
                     for (McpSecurityPolicy policy : defaultPolicies) {
-                        savePolicyToDb(policy);
+                        // Seed một lần: không ghi đè chỉnh sửa đã thực hiện lúc vận hành.
+                        if (findPolicyInDb(policy.getCapabilityId()).isEmpty()) {
+                            savePolicyToDb(policy);
+                        }
                     }
                 }
             }
@@ -48,27 +51,26 @@ public class McpSecurityPolicyProvider {
         loadAllFromDb();
     }
 
+    /**
+     * P0-5: trả về null khi không có policy tường minh, và người gọi phải coi
+     * null là TỪ CHỐI.
+     *
+     * Bản cũ tạo ra một policy mặc định MỞ cho mọi capability lạ, tức là thêm
+     * một tool mới mà quên khai báo policy thì tool đó tự động được phép chạy.
+     */
     public McpSecurityPolicy getPolicy(String capabilityId) {
         if (capabilityId == null) return null;
         if (policyCache.containsKey(capabilityId)) {
             return policyCache.get(capabilityId);
         }
 
-        // Fallback or read direct from DB
         Optional<McpSecurityPolicy> fromDb = findPolicyInDb(capabilityId);
         if (fromDb.isPresent()) {
             policyCache.put(capabilityId, fromDb.get());
             return fromDb.get();
         }
 
-        // Default open read-safe fallback
-        McpSecurityPolicy defaultPolicy = new McpSecurityPolicy(
-            capabilityId, "READ_SAFE", false, false,
-            List.of("dynamic_tool_agent", "business_orchestrator"),
-            List.of("dynamic_autonomous", "domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance")
-        );
-        policyCache.put(capabilityId, defaultPolicy);
-        return defaultPolicy;
+        return null;
     }
 
     public List<McpSecurityPolicy> getAllPolicies() {
@@ -77,9 +79,20 @@ public class McpSecurityPolicyProvider {
 
     public synchronized McpSecurityPolicy updatePolicy(String capabilityId, List<String> allowedCallers, List<String> allowedWorkflows) {
         McpSecurityPolicy existing = getPolicy(capabilityId);
+
         if (existing == null) {
-            existing = new McpSecurityPolicy(capabilityId, "READ_SAFE", false, false, allowedCallers, allowedWorkflows);
-        } else {
+            // Không tạo policy mới qua API vận hành: policy phải đi kèm code của tool.
+            throw new IllegalArgumentException(
+                "Không tồn tại policy cho " + capabilityId + ". Policy mới phải được khai báo trong mcp-policies.json.");
+        }
+
+        // P0-5: capability ghi sổ tài chính không được nới quyền lúc runtime.
+        if ("FINANCIAL_WRITE".equals(existing.getRiskLevel()) || existing.isSideEffect()) {
+            throw new IllegalArgumentException(
+                "Không được thay đổi policy của capability ghi sổ tài chính " + capabilityId + " khi đang vận hành.");
+        }
+
+        {
             if (allowedCallers != null) existing.setAllowedCallers(allowedCallers);
             if (allowedWorkflows != null) existing.setAllowedWorkflows(allowedWorkflows);
         }

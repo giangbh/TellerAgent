@@ -1,0 +1,2241 @@
+diff --git a/frontend/src/App.tsx b/frontend/src/App.tsx
+index 9777e6f..5eba84a 100644
+--- a/frontend/src/App.tsx
++++ b/frontend/src/App.tsx
+@@ -21,6 +21,13 @@ export const App: React.FC = () => {
+     const init = async () => {
+       try {
+         setLoading(true);
++        // P0-3: POC — danh tính lấy từ phiên đăng nhập. Thay bằng OIDC ở môi trường thật.
++        api.setCurrentActor({
++          id: 'GDV001',
++          name: 'Nguyễn Thị Hà',
++          role: 'TELLER',
++          branchId: 'CN-SGD-01',
++        });
+         const boot = await api.fetchBootstrap();
+         setBootstrap(boot);
+         const sess = await api.createSession();
+@@ -66,7 +73,19 @@ export const App: React.FC = () => {
+     try {
+       setLoading(true);
+       setErrorMsg(null);
+-      const updated = await api.approveSession(session.sessionId, actor);
++
++      let updated;
++      if (actor === 'customer') {
++        // P0-4: xác nhận của khách hàng phải có bằng chứng thật, GDV nhập vào.
++        const ref = window.prompt('Nhập mã bằng chứng khách hàng đã đồng ý (mã OTP / số phiếu có chữ ký):');
++        if (!ref || !ref.trim()) {
++          setErrorMsg('Chưa nhập bằng chứng xác nhận của khách hàng.');
++          return;
++        }
++        updated = await api.recordCustomerConsent(session.sessionId, 'SIGNATURE', ref.trim());
++      } else {
++        updated = await api.approveSession(session.sessionId, actor);
++      }
+       setSession(updated);
+     } catch (err: unknown) {
+       setErrorMsg(err instanceof Error ? err.message : `Lỗi khi ${actor} phê duyệt.`);
+diff --git a/frontend/src/api/tellerApi.ts b/frontend/src/api/tellerApi.ts
+index bdb142f..9944e5d 100644
+--- a/frontend/src/api/tellerApi.ts
++++ b/frontend/src/api/tellerApi.ts
+@@ -2,6 +2,38 @@ import { BootstrapData, Session } from '../types/teller';
+ 
+ const API_BASE = '/api';
+ 
++/**
++ * P0-3: mọi request phải mang danh tính đã xác thực.
++ *
++ * POC: header do BFF/reverse proxy đặt. Khi chuyển sang OIDC, thay hàm này
++ * bằng việc gắn Bearer token — phần còn lại của frontend không đổi.
++ */
++export type ActorIdentity = {
++  id: string;
++  name: string;
++  role: 'TELLER' | 'SUPERVISOR' | 'SECURITY_ADMIN';
++  branchId?: string;
++};
++
++let currentActor: ActorIdentity | null = null;
++
++export function setCurrentActor(actor: ActorIdentity) {
++  currentActor = actor;
++}
++
++function authHeaders(): Record<string, string> {
++  if (!currentActor) {
++    throw new Error('Chưa đăng nhập: không xác định được danh tính người dùng.');
++  }
++  return {
++    'Content-Type': 'application/json',
++    'X-Actor-Id': currentActor.id,
++    'X-Actor-Name': currentActor.name,
++    'X-Actor-Role': currentActor.role,
++    ...(currentActor.branchId ? { 'X-Actor-Branch': currentActor.branchId } : {}),
++  };
++}
++
+ export async function fetchBootstrap(): Promise<BootstrapData> {
+   const res = await fetch(`${API_BASE}/bootstrap`);
+   if (!res.ok) throw new Error('Không thể tải thông tin khởi động hệ thống.');
+@@ -11,7 +43,7 @@ export async function fetchBootstrap(): Promise<BootstrapData> {
+ export async function createSession(params?: Record<string, unknown>): Promise<Session> {
+   const res = await fetch(`${API_BASE}/sessions`, {
+     method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
++    headers: authHeaders(),
+     body: JSON.stringify(params || {}),
+   });
+   if (!res.ok) throw new Error('Không thể khởi tạo phiên làm việc.');
+@@ -19,7 +51,7 @@ export async function createSession(params?: Record<string, unknown>): Promise<S
+ }
+ 
+ export async function getSession(sessionId: string): Promise<Session> {
+-  const res = await fetch(`${API_BASE}/sessions/${sessionId}`);
++  const res = await fetch(`${API_BASE}/sessions/${sessionId}`, { headers: authHeaders() });
+   if (!res.ok) throw new Error('Không thể tải thông tin phiên làm việc.');
+   return res.json();
+ }
+@@ -27,7 +59,7 @@ export async function getSession(sessionId: string): Promise<Session> {
+ export async function sendMessage(sessionId: string, text: string): Promise<Session> {
+   const res = await fetch(`${API_BASE}/sessions/${sessionId}/messages`, {
+     method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
++    headers: authHeaders(),
+     body: JSON.stringify({ text }),
+   });
+   const data = await res.json();
+@@ -37,15 +69,36 @@ export async function sendMessage(sessionId: string, text: string): Promise<Sess
+   return data;
+ }
+ 
+-export async function approveSession(sessionId: string, actor: 'customer' | 'teller' | 'supervisor'): Promise<Session> {
++export async function approveSession(sessionId: string, role: 'teller' | 'supervisor'): Promise<Session> {
+   const res = await fetch(`${API_BASE}/sessions/${sessionId}/approvals`, {
+     method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
+-    body: JSON.stringify({ actor }),
++    headers: authHeaders(),
++    body: JSON.stringify({ role }),
+   });
+   const data = await res.json();
+   if (!res.ok) {
+-    throw new Error(data?.error?.message || `Lỗi khi ${actor} phê duyệt.`);
++    throw new Error(data?.error?.message || `Lỗi khi ${role} phê duyệt.`);
++  }
++  return data;
++}
++
++/**
++ * P0-4: xác nhận của khách hàng là một hành động riêng, bắt buộc kèm bằng chứng.
++ * Không còn cách nào để hệ thống tự đánh dấu "khách hàng đã đồng ý".
++ */
++export async function recordCustomerConsent(
++  sessionId: string,
++  evidenceType: 'OTP' | 'SIGNATURE' | 'DOCUMENT' | 'BIOMETRIC',
++  evidenceRef: string,
++): Promise<Session> {
++  const res = await fetch(`${API_BASE}/sessions/${sessionId}/consent`, {
++    method: 'POST',
++    headers: authHeaders(),
++    body: JSON.stringify({ evidenceType, evidenceRef }),
++  });
++  const data = await res.json();
++  if (!res.ok) {
++    throw new Error(data?.error?.message || 'Lỗi khi ghi nhận xác nhận của khách hàng.');
+   }
+   return data;
+ }
+@@ -53,7 +106,7 @@ export async function approveSession(sessionId: string, actor: 'customer' | 'tel
+ export async function executeSession(sessionId: string): Promise<Session> {
+   const res = await fetch(`${API_BASE}/sessions/${sessionId}/execute`, {
+     method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
++    headers: authHeaders(),
+   });
+   const data = await res.json();
+   if (!res.ok) {
+@@ -65,7 +118,7 @@ export async function executeSession(sessionId: string): Promise<Session> {
+ export async function confirmAndExecuteCash(sessionId: string): Promise<Session> {
+   const res = await fetch(`${API_BASE}/sessions/${sessionId}/confirm-and-execute`, {
+     method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
++    headers: authHeaders(),
+   });
+   const data = await res.json();
+   if (!res.ok) {
+diff --git a/src/main/java/com/dnse/teller/controller/McpController.java b/src/main/java/com/dnse/teller/controller/McpController.java
+index 1e2c7d3..8420052 100644
+--- a/src/main/java/com/dnse/teller/controller/McpController.java
++++ b/src/main/java/com/dnse/teller/controller/McpController.java
+@@ -1,6 +1,10 @@
+ package com.dnse.teller.controller;
+ 
+ import com.dnse.teller.mcp.*;
++import com.dnse.teller.security.ActorResolver;
++import com.dnse.teller.security.AuthenticatedActor;
++import com.dnse.teller.security.AuthorizationException;
++import jakarta.servlet.http.HttpServletRequest;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.web.bind.annotation.*;
+ 
+@@ -12,10 +16,12 @@ import java.util.*;
+ public class McpController {
+     private final McpServer mcpServer;
+     private final McpSecurityPolicyProvider policyProvider;
++    private final ActorResolver actorResolver;
+ 
+-    public McpController(McpServer mcpServer, McpSecurityPolicyProvider policyProvider) {
++    public McpController(McpServer mcpServer, McpSecurityPolicyProvider policyProvider, ActorResolver actorResolver) {
+         this.mcpServer = mcpServer;
+         this.policyProvider = policyProvider;
++        this.actorResolver = actorResolver;
+     }
+ 
+     @PostMapping
+@@ -36,11 +42,18 @@ public class McpController {
+         return ResponseEntity.ok(policy);
+     }
+ 
++    /**
++     * P0-5: endpoint này trước đây không xác thực, cho phép bất kỳ ai ghi đè
++     * allowedCallers của chính core.transfer.execute.
++     */
+     @PutMapping("/policies/{capabilityId}")
+     public ResponseEntity<McpSecurityPolicy> updatePolicy(
+             @PathVariable String capabilityId,
+-            @RequestBody Map<String, Object> body
++            @RequestBody Map<String, Object> body,
++            HttpServletRequest request
+     ) {
++        AuthenticatedActor actor = actorResolver.resolve(request);
++        actor.requireRole(AuthenticatedActor.Role.SECURITY_ADMIN);
+         @SuppressWarnings("unchecked")
+         List<String> allowedCallers = body.get("allowedCallers") instanceof List ? (List<String>) body.get("allowedCallers") : null;
+         @SuppressWarnings("unchecked")
+@@ -49,4 +62,18 @@ public class McpController {
+         McpSecurityPolicy updated = policyProvider.updatePolicy(capabilityId, allowedCallers, allowedWorkflows);
+         return ResponseEntity.ok(updated);
+     }
++
++    @ExceptionHandler(AuthorizationException.class)
++    public ResponseEntity<Map<String, Object>> handleAuthorizationException(AuthorizationException ex) {
++        return ResponseEntity.status(ex.getStatus()).body(Map.of(
++            "error", Map.of("code", ex.getCode(), "message", ex.getMessage())
++        ));
++    }
++
++    @ExceptionHandler(IllegalArgumentException.class)
++    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
++        return ResponseEntity.status(400).body(Map.of(
++            "error", Map.of("code", "POLICY_UPDATE_REJECTED", "message", ex.getMessage())
++        ));
++    }
+ }
+diff --git a/src/main/java/com/dnse/teller/controller/SessionController.java b/src/main/java/com/dnse/teller/controller/SessionController.java
+index b887959..d0496e9 100644
+--- a/src/main/java/com/dnse/teller/controller/SessionController.java
++++ b/src/main/java/com/dnse/teller/controller/SessionController.java
+@@ -4,6 +4,10 @@ import com.dnse.teller.model.BootstrapResponse;
+ import com.dnse.teller.model.Session;
+ import com.dnse.teller.orchestrator.TellerOrchestrator;
+ import com.dnse.teller.orchestrator.TellerOrchestrator.OrchestratorException;
++import com.dnse.teller.security.ActorResolver;
++import com.dnse.teller.security.AuthenticatedActor;
++import com.dnse.teller.security.AuthorizationException;
++import jakarta.servlet.http.HttpServletRequest;
+ import org.springframework.http.HttpStatus;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.web.bind.annotation.*;
+@@ -16,9 +20,11 @@ import java.util.Map;
+ @CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8799", "http://127.0.0.1:8799"})
+ public class SessionController {
+     private final TellerOrchestrator orchestrator;
++    private final ActorResolver actorResolver;
+ 
+-    public SessionController(TellerOrchestrator orchestrator) {
++    public SessionController(TellerOrchestrator orchestrator, ActorResolver actorResolver) {
+         this.orchestrator = orchestrator;
++        this.actorResolver = actorResolver;
+     }
+ 
+     @GetMapping("/health")
+@@ -36,44 +42,75 @@ public class SessionController {
+     }
+ 
+     @PostMapping("/sessions")
+-    public ResponseEntity<Session> createSession(@RequestBody(required = false) Map<String, Object> body) {
+-        return ResponseEntity.status(HttpStatus.CREATED).body(orchestrator.createSession(body));
++    public ResponseEntity<Session> createSession(@RequestBody(required = false) Map<String, Object> body,
++                                                 HttpServletRequest request) {
++        AuthenticatedActor actor = actorResolver.resolve(request);
++        actor.requireRole(AuthenticatedActor.Role.TELLER);
++        return ResponseEntity.status(HttpStatus.CREATED).body(orchestrator.createSession(body, actor));
+     }
+ 
+     @GetMapping("/sessions/{id}")
+-    public ResponseEntity<Session> getSession(@PathVariable("id") String id) {
++    public ResponseEntity<Session> getSession(@PathVariable("id") String id, HttpServletRequest request) {
++        actorResolver.resolve(request);
+         return ResponseEntity.ok(orchestrator.getSession(id));
+     }
+ 
+     @PostMapping("/sessions/{id}/messages")
+-    public ResponseEntity<Session> postMessage(@PathVariable("id") String id, @RequestBody Map<String, Object> body) throws Exception {
++    public ResponseEntity<Session> postMessage(@PathVariable("id") String id,
++                                               @RequestBody Map<String, Object> body,
++                                               HttpServletRequest request) throws Exception {
++        actorResolver.resolve(request);
+         String text = body != null && body.get("text") != null ? String.valueOf(body.get("text")) : "";
+         return ResponseEntity.ok(orchestrator.processMessage(id, text));
+     }
+ 
++    /**
++     * P0-4: xác nhận của khách hàng là một endpoint riêng, bắt buộc kèm bằng
++     * chứng, và được ghi nhận dưới danh tính của GDV thực hiện.
++     */
++    @PostMapping("/sessions/{id}/consent")
++    public ResponseEntity<Session> recordConsent(@PathVariable("id") String id,
++                                                 @RequestBody Map<String, Object> body,
++                                                 HttpServletRequest request) {
++        AuthenticatedActor actor = actorResolver.resolve(request);
++        String evidenceType = body != null && body.get("evidenceType") != null ? String.valueOf(body.get("evidenceType")) : null;
++        String evidenceRef = body != null && body.get("evidenceRef") != null ? String.valueOf(body.get("evidenceRef")) : null;
++        return ResponseEntity.ok(orchestrator.recordCustomerConsent(id, actor, evidenceType, evidenceRef));
++    }
++
+     @PostMapping("/sessions/{id}/approvals")
+-    public ResponseEntity<Session> approve(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
+-        String actor = body != null && body.get("actor") != null ? String.valueOf(body.get("actor")) : "";
+-        return ResponseEntity.ok(orchestrator.approve(id, actor));
++    public ResponseEntity<Session> approve(@PathVariable("id") String id,
++                                           @RequestBody Map<String, Object> body,
++                                           HttpServletRequest request) {
++        AuthenticatedActor actor = actorResolver.resolve(request);
++        // "role" chỉ nói người dùng MUỐN ký với tư cách gì; quyền thực tế lấy từ actor.
++        String requestedRole = body != null && body.get("role") != null ? String.valueOf(body.get("role")) : "";
++        return ResponseEntity.ok(orchestrator.approve(id, requestedRole, actor));
+     }
+ 
+     @PostMapping("/sessions/{id}/execute")
+-    public ResponseEntity<Session> execute(@PathVariable("id") String id) throws Exception {
+-        return ResponseEntity.ok(orchestrator.execute(id));
++    public ResponseEntity<Session> execute(@PathVariable("id") String id, HttpServletRequest request) throws Exception {
++        AuthenticatedActor actor = actorResolver.resolve(request);
++        return ResponseEntity.ok(orchestrator.execute(id, actor));
+     }
+ 
+     @PostMapping("/sessions/{id}/confirm-and-execute")
+-    public ResponseEntity<Session> confirmAndExecute(@PathVariable("id") String id) throws Exception {
+-        return ResponseEntity.ok(orchestrator.confirmAndExecuteCash(id));
++    public ResponseEntity<Session> confirmAndExecute(@PathVariable("id") String id, HttpServletRequest request) throws Exception {
++        AuthenticatedActor actor = actorResolver.resolve(request);
++        return ResponseEntity.ok(orchestrator.confirmAndExecuteCash(id, actor));
++    }
++
++    @ExceptionHandler(AuthorizationException.class)
++    public ResponseEntity<Map<String, Object>> handleAuthorizationException(AuthorizationException ex) {
++        return ResponseEntity.status(ex.getStatus()).body(Map.of(
++            "error", Map.of("code", ex.getCode(), "message", ex.getMessage())
++        ));
+     }
+ 
+     @ExceptionHandler(OrchestratorException.class)
+     public ResponseEntity<Map<String, Object>> handleOrchestratorException(OrchestratorException ex) {
+         return ResponseEntity.status(ex.getStatus()).body(Map.of(
+-            "error", Map.of(
+-                "code", ex.getCode(),
+-                "message", ex.getMessage()
+-            )
++            "error", Map.of("code", ex.getCode(), "message", ex.getMessage())
+         ));
+     }
+ 
+diff --git a/src/main/java/com/dnse/teller/gateway/InternalApiGateway.java b/src/main/java/com/dnse/teller/gateway/InternalApiGateway.java
+index 9c235b0..4288978 100644
+--- a/src/main/java/com/dnse/teller/gateway/InternalApiGateway.java
++++ b/src/main/java/com/dnse/teller/gateway/InternalApiGateway.java
+@@ -1,6 +1,8 @@
+ package com.dnse.teller.gateway;
+ 
+ import com.dnse.teller.persistence.WorkflowRepository;
++import com.dnse.teller.security.AuthorizationException;
++import com.dnse.teller.security.PostingAuthorization;
+ import com.fasterxml.jackson.core.type.TypeReference;
+ import com.fasterxml.jackson.databind.ObjectMapper;
+ import org.springframework.stereotype.Service;
+@@ -9,6 +11,14 @@ import java.time.Instant;
+ import java.util.*;
+ import java.util.concurrent.atomic.AtomicLong;
+ 
++/**
++ * Cửa duy nhất đi vào core banking.
++ *
++ * P0-2: bản cũ kiểm tra caller bằng so sánh chuỗi, trong khi chuỗi đó do chính
++ * tool hardcode khi gọi — nhánh từ chối là code chết. Nay gateway nhận
++ * {@link PostingAuthorization}, thứ chỉ PostingAuthorizer tạo được sau khi đã
++ * kiểm chứng lại control gate từ dữ liệu đã persist.
++ */
+ @Service
+ public class InternalApiGateway {
+     private final WorkflowRepository repository;
+@@ -20,25 +30,40 @@ public class InternalApiGateway {
+         this.objectMapper = objectMapper;
+     }
+ 
+-    public Map<String, Object> dispatchCorePosting(String caller, String workflow, String capabilityId, Map<String, Object> args, String idempotencyKey) throws Exception {
+-        String traceId = "TRC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
++    public Map<String, Object> dispatchCorePosting(PostingAuthorization auth, String capabilityId, Map<String, Object> args) throws Exception {
++        if (auth == null) {
++            throw new AuthorizationException(
++                    "Từ chối hạch toán: không có PostingAuthorization.", "POSTING_AUTHORIZATION_MISSING", 403);
++        }
++        if (!auth.getCapabilityId().equals(capabilityId)) {
++            throw new AuthorizationException(
++                    "Giấy phép cấp cho " + auth.getCapabilityId() + " nhưng đang gọi " + capabilityId + ".",
++                    "CAPABILITY_MISMATCH", 403);
++        }
+ 
+-        // 1. Authorization Check (Only business_orchestrator via Gateway is authorized for Core posting)
+-        if (!"business_orchestrator".equals(caller)) {
+-            throw new SecurityException("API Gateway Rejected: Caller '" + caller + "' không có quyền truy cập Core Banking.");
++        // Số tiền thực post phải khớp số tiền đã được phê duyệt, không lệch một đồng.
++        long argAmount = args != null && args.get("amount") instanceof Number n ? n.longValue() : -1L;
++        if (argAmount != auth.getAmount()) {
++            throw new AuthorizationException(
++                    "Số tiền hạch toán (" + argAmount + ") khác số tiền đã phê duyệt (" + auth.getAmount() + ").",
++                    "AMOUNT_TAMPERED", 409);
+         }
+ 
+-        // 2. Idempotency Check in Ledger
+-        if (idempotencyKey != null) {
+-            Optional<Map<String, Object>> existing = repository.findAuditByIdempotencyKey(idempotencyKey);
+-            if (existing.isPresent()) {
+-                String payloadJson = (String) existing.get().get("payload_json");
+-                return objectMapper.readValue(payloadJson, new TypeReference<Map<String, Object>>() {});
+-            }
++        String idempotencyKey = auth.getIdempotencyKey();
++        if (idempotencyKey == null || idempotencyKey.isBlank()) {
++            throw new AuthorizationException("Thiếu idempotency key.", "IDEMPOTENCY_REQUIRED", 400);
+         }
+ 
+-        // 3. Execute Core Banking Mock Posting
++        // Idempotency: trả lại đúng kết quả cũ nếu key đã tồn tại.
++        Optional<Map<String, Object>> existing = repository.findAuditByIdempotencyKey(idempotencyKey);
++        if (existing.isPresent()) {
++            String payloadJson = (String) existing.get().get("payload_json");
++            return objectMapper.readValue(payloadJson, new TypeReference<Map<String, Object>>() {});
++        }
++
++        String traceId = "TRC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+         long seq = postingCounter.incrementAndGet();
++
+         Map<String, Object> result = new LinkedHashMap<>();
+         result.put("status", "POSTED");
+ 
+@@ -53,12 +78,14 @@ public class InternalApiGateway {
+ 
+         result.put("postedAt", Instant.now().toString());
+         result.put("traceId", traceId);
+-        result.put("amount", args != null && args.get("amount") != null ? ((Number) args.get("amount")).longValue() : 0L);
++        result.put("amount", auth.getAmount());
++        result.put("authorizedBy", auth.getTellerActorId());
++        result.put("countersignedBy", auth.getSupervisorActorId());
++        result.put("sessionRevision", auth.getSessionRevision());
+         result.put("mock", true);
+ 
+-        // 4. Save Immutable Audit Record & Idempotency in SQLite
+         String resultJson = objectMapper.writeValueAsString(result);
+-        repository.recordAuditLog(traceId, caller, capabilityId, idempotencyKey, "POSTED", resultJson);
++        repository.recordAuditLog(traceId, auth.getTellerActorId(), capabilityId, idempotencyKey, "POSTED", resultJson);
+ 
+         return result;
+     }
+diff --git a/src/main/java/com/dnse/teller/mcp/McpSecurityPolicyProvider.java b/src/main/java/com/dnse/teller/mcp/McpSecurityPolicyProvider.java
+index a043ea6..261b911 100644
+--- a/src/main/java/com/dnse/teller/mcp/McpSecurityPolicyProvider.java
++++ b/src/main/java/com/dnse/teller/mcp/McpSecurityPolicyProvider.java
+@@ -36,7 +36,10 @@ public class McpSecurityPolicyProvider {
+                 try (InputStream is = resource.getInputStream()) {
+                     List<McpSecurityPolicy> defaultPolicies = objectMapper.readValue(is, new TypeReference<List<McpSecurityPolicy>>() {});
+                     for (McpSecurityPolicy policy : defaultPolicies) {
+-                        savePolicyToDb(policy);
++                        // Seed một lần: không ghi đè chỉnh sửa đã thực hiện lúc vận hành.
++                        if (findPolicyInDb(policy.getCapabilityId()).isEmpty()) {
++                            savePolicyToDb(policy);
++                        }
+                     }
+                 }
+             }
+@@ -48,27 +51,26 @@ public class McpSecurityPolicyProvider {
+         loadAllFromDb();
+     }
+ 
++    /**
++     * P0-5: trả về null khi không có policy tường minh, và người gọi phải coi
++     * null là TỪ CHỐI.
++     *
++     * Bản cũ tạo ra một policy mặc định MỞ cho mọi capability lạ, tức là thêm
++     * một tool mới mà quên khai báo policy thì tool đó tự động được phép chạy.
++     */
+     public McpSecurityPolicy getPolicy(String capabilityId) {
+         if (capabilityId == null) return null;
+         if (policyCache.containsKey(capabilityId)) {
+             return policyCache.get(capabilityId);
+         }
+ 
+-        // Fallback or read direct from DB
+         Optional<McpSecurityPolicy> fromDb = findPolicyInDb(capabilityId);
+         if (fromDb.isPresent()) {
+             policyCache.put(capabilityId, fromDb.get());
+             return fromDb.get();
+         }
+ 
+-        // Default open read-safe fallback
+-        McpSecurityPolicy defaultPolicy = new McpSecurityPolicy(
+-            capabilityId, "READ_SAFE", false, false,
+-            List.of("dynamic_tool_agent", "business_orchestrator"),
+-            List.of("dynamic_autonomous", "domestic_transfer", "cash_deposit", "cash_withdrawal", "policy_assistance")
+-        );
+-        policyCache.put(capabilityId, defaultPolicy);
+-        return defaultPolicy;
++        return null;
+     }
+ 
+     public List<McpSecurityPolicy> getAllPolicies() {
+@@ -77,9 +79,20 @@ public class McpSecurityPolicyProvider {
+ 
+     public synchronized McpSecurityPolicy updatePolicy(String capabilityId, List<String> allowedCallers, List<String> allowedWorkflows) {
+         McpSecurityPolicy existing = getPolicy(capabilityId);
++
+         if (existing == null) {
+-            existing = new McpSecurityPolicy(capabilityId, "READ_SAFE", false, false, allowedCallers, allowedWorkflows);
+-        } else {
++            // Không tạo policy mới qua API vận hành: policy phải đi kèm code của tool.
++            throw new IllegalArgumentException(
++                "Không tồn tại policy cho " + capabilityId + ". Policy mới phải được khai báo trong mcp-policies.json.");
++        }
++
++        // P0-5: capability ghi sổ tài chính không được nới quyền lúc runtime.
++        if ("FINANCIAL_WRITE".equals(existing.getRiskLevel()) || existing.isSideEffect()) {
++            throw new IllegalArgumentException(
++                "Không được thay đổi policy của capability ghi sổ tài chính " + capabilityId + " khi đang vận hành.");
++        }
++
++        {
+             if (allowedCallers != null) existing.setAllowedCallers(allowedCallers);
+             if (allowedWorkflows != null) existing.setAllowedWorkflows(allowedWorkflows);
+         }
+diff --git a/src/main/java/com/dnse/teller/mcp/McpServer.java b/src/main/java/com/dnse/teller/mcp/McpServer.java
+index 4028943..87bb314 100644
+--- a/src/main/java/com/dnse/teller/mcp/McpServer.java
++++ b/src/main/java/com/dnse/teller/mcp/McpServer.java
+@@ -50,7 +50,24 @@ public class McpServer {
+         }
+     }
+ 
+-    public Map<String, Object> executeDirect(String caller, String workflow, String capabilityId, Map<String, Object> args, String idempotencyKey) throws Exception {
++    /**
++     * Overload tương thích ngược cho các agent chỉ-đọc (AgentSuite). Ngữ cảnh
++     * tạo ra ở đây KHÔNG mang PostingAuthorization, nên tool tài chính vẫn bị
++     * từ chối — agent không thể tự post core dù gọi qua đường này.
++     */
++    public Map<String, Object> executeDirect(String caller, String workflow, String capabilityId,
++                                             Map<String, Object> args, String idempotencyKey) throws Exception {
++        return executeDirect(new ToolCallContext(caller, workflow, idempotencyKey, null), capabilityId, args);
++    }
++
++    /**
++     * Đường gọi nội bộ, chỉ dành cho orchestrator. Không phơi ra HTTP.
++     */
++    public Map<String, Object> executeDirect(ToolCallContext context, String capabilityId, Map<String, Object> args) throws Exception {
++        if (context == null || isBlank(context.caller()) || isBlank(context.workflow())) {
++            throw new McpSecurityException("Thiếu ngữ cảnh gọi tool (caller/workflow).", "TOOL_CONTEXT_MISSING");
++        }
++
+         Optional<McpTool> toolOpt = registry.resolve(capabilityId);
+         if (toolOpt.isEmpty()) {
+             throw new McpSecurityException("Capability không tồn tại: " + capabilityId, "UNKNOWN_CAPABILITY");
+@@ -58,16 +75,22 @@ public class McpServer {
+ 
+         McpTool tool = toolOpt.get();
+         McpSecurityPolicy policy = policyProvider.getPolicy(tool.getId());
+-        validatePolicy(tool.getId(), policy, caller, workflow, idempotencyKey);
++        validatePolicy(tool, policy, context.caller(), context.workflow(), context.idempotencyKey());
++
++        if (tool.isFinancialWrite() && !context.hasPostingAuthorization()) {
++            throw new McpSecurityException(
++                    tool.getId() + " yêu cầu PostingAuthorization đã được kiểm chứng.",
++                    "POSTING_AUTHORIZATION_MISSING");
++        }
+ 
+         String startedAt = Instant.now().toString();
+-        Map<String, Object> result = tool.execute(args, idempotencyKey);
++        Map<String, Object> result = tool.execute(args, context.idempotencyKey(), context);
+         String completedAt = Instant.now().toString();
+ 
+         Map<String, Object> callRecord = new LinkedHashMap<>();
+         callRecord.put("capabilityId", tool.getId());
+         callRecord.put("toolName", tool.getName());
+-        callRecord.put("caller", caller);
++        callRecord.put("caller", context.caller());
+         callRecord.put("risk", policy != null ? policy.getRiskLevel() : tool.getRisk());
+         callRecord.put("sideEffect", policy != null ? policy.isSideEffect() : tool.isSideEffect());
+         callRecord.put("startedAt", startedAt);
+@@ -129,19 +152,33 @@ public class McpServer {
+ 
+         McpTool tool = toolOpt.get();
+         McpSecurityPolicy policy = policyProvider.getPolicy(tool.getId());
++
++        // P0-1: tool ghi sổ tài chính KHÔNG BAO GIỜ được phơi ra qua JSON-RPC công khai.
++        // Chúng chỉ đến được core qua orchestrator, sau khi qua đủ control gate.
++        if (tool.isFinancialWrite() || tool.isSideEffect() || (policy != null && policy.isSideEffect())) {
++            throw new McpSecurityException(
++                    tool.getId() + " không được phơi ra qua endpoint MCP. Hãy dùng luồng nghiệp vụ /api/sessions.",
++                    "FINANCIAL_WRITE_NOT_EXPOSED");
++        }
++
+         Map<String, Object> arguments = params.get("arguments") instanceof Map ? (Map<String, Object>) params.get("arguments") : Map.of();
+ 
+-        // RBAC Context from params or arguments
+-        String caller = params.get("caller") != null ? String.valueOf(params.get("caller"))
+-            : (arguments.get("_caller") != null ? String.valueOf(arguments.get("_caller")) : "business_orchestrator");
+-        String workflow = params.get("workflow") != null ? String.valueOf(params.get("workflow"))
+-            : (arguments.get("_workflow") != null ? String.valueOf(arguments.get("_workflow")) : "domestic_transfer");
+-        String idempotencyKey = params.get("idempotencyKey") != null ? String.valueOf(params.get("idempotencyKey"))
+-            : (arguments.get("_idempotencyKey") != null ? String.valueOf(arguments.get("_idempotencyKey")) : null);
++        // P0-1: không còn giá trị mặc định. Trước đây caller mặc định là
++        // "business_orchestrator" — tức danh tính đặc quyền cao nhất được cấp
++        // cho một request trống rỗng.
++        String caller = firstNonBlank(params.get("caller"), arguments.get("_caller"));
++        String workflow = firstNonBlank(params.get("workflow"), arguments.get("_workflow"));
++        String idempotencyKey = firstNonBlank(params.get("idempotencyKey"), arguments.get("_idempotencyKey"));
+ 
+-        validatePolicy(tool.getId(), policy, caller, workflow, idempotencyKey);
++        if (isBlank(caller) || isBlank(workflow)) {
++            throw new McpSecurityException(
++                    "Lời gọi tool phải khai báo tường minh 'caller' và 'workflow'.", "TOOL_CONTEXT_MISSING");
++        }
++
++        validatePolicy(tool, policy, caller, workflow, idempotencyKey);
+ 
+-        Map<String, Object> executionResult = tool.execute(arguments, idempotencyKey);
++        Map<String, Object> executionResult = tool.execute(
++                arguments, idempotencyKey, ToolCallContext.readOnly(caller, workflow));
+ 
+         Map<String, Object> response = new LinkedHashMap<>();
+         response.put("content", List.of(
+@@ -203,20 +240,63 @@ public class McpServer {
+         );
+     }
+ 
+-    private void validatePolicy(String capabilityId, McpSecurityPolicy policy, String caller, String workflow, String idempotencyKey) {
+-        if (policy == null) return;
++    /**
++     * P0-5: fail-closed.
++     *
++     * Bản cũ: policy == null thì return (cho qua), và danh sách rỗng cũng cho qua.
++     * Bản mới: không có policy tường minh thì từ chối; danh sách rỗng nghĩa là
++     * không ai được gọi.
++     *
++     * Ngoài ra quyền hiệu lực = GIAO của policy trong DB và khai báo cứng trong
++     * code của tool. Nhờ vậy một lần sửa policy trong DB không bao giờ nới rộng
++     * được quyền vượt quá thứ tác giả tool đã cho phép.
++     */
++    private void validatePolicy(McpTool tool, McpSecurityPolicy policy, String caller, String workflow, String idempotencyKey) {
++        String capabilityId = tool.getId();
++
++        if (policy == null) {
++            throw new McpSecurityException(
++                    "Không có policy tường minh cho " + capabilityId + " — từ chối theo nguyên tắc fail-closed.",
++                    "POLICY_NOT_DEFINED");
++        }
+ 
+-        if (policy.getAllowedCallers() != null && !policy.getAllowedCallers().isEmpty() && !policy.getAllowedCallers().contains(caller)) {
++        Set<String> effectiveCallers = intersect(policy.getAllowedCallers(), tool.getAllowedCallers());
++        if (effectiveCallers.isEmpty() || !effectiveCallers.contains(caller)) {
+             throw new McpSecurityException(caller + " không được phép gọi " + capabilityId, "TOOL_POLICY_DENIED");
+         }
+-        if (policy.getAllowedWorkflows() != null && !policy.getAllowedWorkflows().isEmpty() && !policy.getAllowedWorkflows().contains(workflow)) {
++
++        Set<String> effectiveWorkflows = intersect(policy.getAllowedWorkflows(), tool.getWorkflows());
++        if (effectiveWorkflows.isEmpty() || !effectiveWorkflows.contains(workflow)) {
+             throw new McpSecurityException(capabilityId + " không thuộc workflow " + workflow, "INVALID_WORKFLOW");
+         }
+-        if (policy.isRequiresIdempotency() && (idempotencyKey == null || idempotencyKey.trim().isEmpty())) {
++
++        boolean needsIdempotency = policy.isRequiresIdempotency() || tool.isRequiresIdempotency();
++        if (needsIdempotency && isBlank(idempotencyKey)) {
+             throw new McpSecurityException(capabilityId + " yêu cầu idempotency key", "IDEMPOTENCY_REQUIRED");
+         }
+     }
+ 
++    private static Set<String> intersect(List<String> a, List<String> b) {
++        if (a == null || b == null) return Set.of();
++        Set<String> result = new LinkedHashSet<>(a);
++        result.retainAll(b);
++        return result;
++    }
++
++    private static String firstNonBlank(Object... candidates) {
++        for (Object c : candidates) {
++            if (c != null) {
++                String s = String.valueOf(c).trim();
++                if (!s.isEmpty()) return s;
++            }
++        }
++        return null;
++    }
++
++    private static boolean isBlank(String s) {
++        return s == null || s.trim().isEmpty();
++    }
++
+     private Map<String, Object> maskArgs(Map<String, Object> args) {
+         if (args == null) return Map.of();
+         Map<String, Object> copy = new LinkedHashMap<>(args);
+diff --git a/src/main/java/com/dnse/teller/mcp/McpTool.java b/src/main/java/com/dnse/teller/mcp/McpTool.java
+index c182dbb..723b765 100644
+--- a/src/main/java/com/dnse/teller/mcp/McpTool.java
++++ b/src/main/java/com/dnse/teller/mcp/McpTool.java
+@@ -15,4 +15,22 @@ public interface McpTool {
+     Map<String, Object> getInputSchema();
+ 
+     Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) throws Exception;
++
++    /**
++     * Tool ghi sổ tài chính. Nhóm này KHÔNG bao giờ được phơi ra qua endpoint
++     * JSON-RPC công khai và chỉ chạy được khi có ToolCallContext mang
++     * PostingAuthorization hợp lệ.
++     */
++    default boolean isFinancialWrite() {
++        return "FINANCIAL_WRITE".equals(getRisk());
++    }
++
++    /**
++     * Bản có ngữ cảnh. Mặc định uỷ quyền cho bản 2 tham số để 21 tool chỉ-đọc
++     * hiện hữu không phải sửa gì. Riêng tool tài chính override bản này và làm
++     * cho bản 2 tham số ném lỗi.
++     */
++    default Map<String, Object> execute(Map<String, Object> args, String idempotencyKey, ToolCallContext context) throws Exception {
++        return execute(args, idempotencyKey);
++    }
+ }
+diff --git a/src/main/java/com/dnse/teller/mcp/ToolCallContext.java b/src/main/java/com/dnse/teller/mcp/ToolCallContext.java
+new file mode 100644
+index 0000000..4f9284b
+--- /dev/null
++++ b/src/main/java/com/dnse/teller/mcp/ToolCallContext.java
+@@ -0,0 +1,44 @@
++package com.dnse.teller.mcp;
++
++import com.dnse.teller.security.PostingAuthorization;
++
++/**
++ * Ngữ cảnh của một lời gọi tool.
++ *
++ * Trước đây caller/workflow là hai tham số String rời rạc và có GIÁ TRỊ MẶC ĐỊNH
++ * bằng danh tính đặc quyền cao nhất ("business_orchestrator" / "domestic_transfer"),
++ * nên một request JSON-RPC trống rỗng cũng được cấp quyền cao nhất. Nay:
++ *
++ *  - caller/workflow không còn mặc định, thiếu là từ chối;
++ *  - quyền hạch toán không nằm ở chuỗi caller mà ở {@link PostingAuthorization},
++ *    thứ mà tầng HTTP không thể tạo ra.
++ */
++public record ToolCallContext(
++        String caller,
++        String workflow,
++        String idempotencyKey,
++        PostingAuthorization postingAuthorization
++) {
++
++    /** Ngữ cảnh cho tool chỉ đọc / không side effect. */
++    public static ToolCallContext readOnly(String caller, String workflow) {
++        return new ToolCallContext(caller, workflow, null, null);
++    }
++
++    /** Ngữ cảnh cho tool hạch toán — bắt buộc có giấy phép đã được kiểm chứng. */
++    public static ToolCallContext forPosting(PostingAuthorization authorization) {
++        if (authorization == null) {
++            throw new IllegalArgumentException("PostingAuthorization là bắt buộc cho tool hạch toán.");
++        }
++        return new ToolCallContext(
++                "business_orchestrator",
++                authorization.getWorkflow(),
++                authorization.getIdempotencyKey(),
++                authorization
++        );
++    }
++
++    public boolean hasPostingAuthorization() {
++        return postingAuthorization != null;
++    }
++}
+diff --git a/src/main/java/com/dnse/teller/mcp/tools/CoreCashExecuteTool.java b/src/main/java/com/dnse/teller/mcp/tools/CoreCashExecuteTool.java
+index 8f577ef..1179a2a 100644
+--- a/src/main/java/com/dnse/teller/mcp/tools/CoreCashExecuteTool.java
++++ b/src/main/java/com/dnse/teller/mcp/tools/CoreCashExecuteTool.java
+@@ -2,6 +2,8 @@ package com.dnse.teller.mcp.tools;
+ 
+ import com.dnse.teller.gateway.InternalApiGateway;
+ import com.dnse.teller.mcp.McpTool;
++import com.dnse.teller.mcp.ToolCallContext;
++import com.dnse.teller.security.AuthorizationException;
+ import org.springframework.stereotype.Component;
+ 
+ import java.util.*;
+@@ -52,8 +54,18 @@ public class CoreCashExecuteTool implements McpTool {
+     }
+ 
+     @Override
+-    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) throws Exception {
+-        String workflow = args != null && "CASH_WITHDRAWAL".equals(args.get("transactionType")) ? "cash_withdrawal" : "cash_deposit";
+-        return gateway.dispatchCorePosting("business_orchestrator", workflow, getId(), args, idempotencyKey);
++    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
++        throw new AuthorizationException(
++                "core.cash.execute chỉ chạy được với PostingAuthorization hợp lệ.",
++                "POSTING_AUTHORIZATION_MISSING", 403);
++    }
++
++    @Override
++    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey, ToolCallContext context) throws Exception {
++        if (context == null || !context.hasPostingAuthorization()) {
++            throw new AuthorizationException(
++                    "core.cash.execute yêu cầu PostingAuthorization.", "POSTING_AUTHORIZATION_MISSING", 403);
++        }
++        return gateway.dispatchCorePosting(context.postingAuthorization(), getId(), args);
+     }
+ }
+diff --git a/src/main/java/com/dnse/teller/mcp/tools/CoreTransferExecuteTool.java b/src/main/java/com/dnse/teller/mcp/tools/CoreTransferExecuteTool.java
+index 04317da..c2584a4 100644
+--- a/src/main/java/com/dnse/teller/mcp/tools/CoreTransferExecuteTool.java
++++ b/src/main/java/com/dnse/teller/mcp/tools/CoreTransferExecuteTool.java
+@@ -2,6 +2,8 @@ package com.dnse.teller.mcp.tools;
+ 
+ import com.dnse.teller.gateway.InternalApiGateway;
+ import com.dnse.teller.mcp.McpTool;
++import com.dnse.teller.mcp.ToolCallContext;
++import com.dnse.teller.security.AuthorizationException;
+ import org.springframework.stereotype.Component;
+ 
+ import java.util.*;
+@@ -53,8 +55,24 @@ public class CoreTransferExecuteTool implements McpTool {
+         );
+     }
+ 
++    /**
++     * P0-1/P0-2: bản không có ngữ cảnh luôn bị từ chối. Trước đây hàm này tự
++     * hardcode caller "business_orchestrator" khi gọi gateway, biến kiểm tra
++     * quyền của gateway thành code chết.
++     */
+     @Override
+-    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) throws Exception {
+-        return gateway.dispatchCorePosting("business_orchestrator", "domestic_transfer", getId(), args, idempotencyKey);
++    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
++        throw new AuthorizationException(
++                "core.transfer.execute chỉ chạy được với PostingAuthorization hợp lệ.",
++                "POSTING_AUTHORIZATION_MISSING", 403);
++    }
++
++    @Override
++    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey, ToolCallContext context) throws Exception {
++        if (context == null || !context.hasPostingAuthorization()) {
++            throw new AuthorizationException(
++                    "core.transfer.execute yêu cầu PostingAuthorization.", "POSTING_AUTHORIZATION_MISSING", 403);
++        }
++        return gateway.dispatchCorePosting(context.postingAuthorization(), getId(), args);
+     }
+ }
+diff --git a/src/main/java/com/dnse/teller/model/ApprovalRecord.java b/src/main/java/com/dnse/teller/model/ApprovalRecord.java
+new file mode 100644
+index 0000000..ce7d6f0
+--- /dev/null
++++ b/src/main/java/com/dnse/teller/model/ApprovalRecord.java
+@@ -0,0 +1,54 @@
++package com.dnse.teller.model;
++
++import com.fasterxml.jackson.annotation.JsonInclude;
++
++/**
++ * Một lần xác nhận, gắn với danh tính cụ thể.
++ *
++ * Thay cho cờ boolean trước đây: một cờ boolean không trả lời được câu hỏi
++ * "ai đã xác nhận" — mà đó lại chính là câu hỏi đầu tiên của thanh tra.
++ */
++@JsonInclude(JsonInclude.Include.NON_NULL)
++public class ApprovalRecord {
++    private String actorId;
++    private String actorName;
++    private String actorRole;
++    private String at;
++
++    /** Với xác nhận của khách hàng: bằng chứng khách đã đồng ý (OTP / SIGNATURE / DOCUMENT). */
++    private String evidenceType;
++    private String evidenceRef;
++
++    /** Với xác nhận của khách hàng: GDV đã ghi nhận bằng chứng đó. */
++    private String recordedByActorId;
++
++    public ApprovalRecord() {}
++
++    public ApprovalRecord(String actorId, String actorName, String actorRole, String at) {
++        this.actorId = actorId;
++        this.actorName = actorName;
++        this.actorRole = actorRole;
++        this.at = at;
++    }
++
++    public String getActorId() { return actorId; }
++    public void setActorId(String actorId) { this.actorId = actorId; }
++
++    public String getActorName() { return actorName; }
++    public void setActorName(String actorName) { this.actorName = actorName; }
++
++    public String getActorRole() { return actorRole; }
++    public void setActorRole(String actorRole) { this.actorRole = actorRole; }
++
++    public String getAt() { return at; }
++    public void setAt(String at) { this.at = at; }
++
++    public String getEvidenceType() { return evidenceType; }
++    public void setEvidenceType(String evidenceType) { this.evidenceType = evidenceType; }
++
++    public String getEvidenceRef() { return evidenceRef; }
++    public void setEvidenceRef(String evidenceRef) { this.evidenceRef = evidenceRef; }
++
++    public String getRecordedByActorId() { return recordedByActorId; }
++    public void setRecordedByActorId(String recordedByActorId) { this.recordedByActorId = recordedByActorId; }
++}
+diff --git a/src/main/java/com/dnse/teller/model/Approvals.java b/src/main/java/com/dnse/teller/model/Approvals.java
+index ec6b364..fc94531 100644
+--- a/src/main/java/com/dnse/teller/model/Approvals.java
++++ b/src/main/java/com/dnse/teller/model/Approvals.java
+@@ -1,26 +1,72 @@
+ package com.dnse.teller.model;
+ 
++import com.dnse.teller.security.AuthenticatedActor;
+ import com.fasterxml.jackson.annotation.JsonInclude;
++import com.fasterxml.jackson.annotation.JsonProperty;
+ 
++import java.time.Instant;
++
++/**
++ * Tập hợp các xác nhận của một giao dịch.
++ *
++ * P0-3/P0-4: các setter boolean cũ (setCustomer/setTeller/setSupervisor) đã bị
++ * gỡ bỏ. Không còn cách nào đặt cờ "đã xác nhận" mà không kèm danh tính. Các
++ * getter boolean vẫn được giữ để tương thích với frontend và evaluateControl(),
++ * nhưng chúng là giá trị dẫn xuất chỉ-đọc.
++ */
+ @JsonInclude(JsonInclude.Include.NON_NULL)
+ public class Approvals {
+-    private boolean customer = false;
+-    private boolean teller = false;
+-    private boolean supervisor = false;
++
++    private ApprovalRecord customerRecord;
++    private ApprovalRecord tellerRecord;
++    private ApprovalRecord supervisorRecord;
+ 
+     public Approvals() {}
+-    public Approvals(boolean customer, boolean teller, boolean supervisor) {
+-        this.customer = customer;
+-        this.teller = teller;
+-        this.supervisor = supervisor;
++
++    // ---- Ghi nhận xác nhận: bắt buộc có danh tính đã xác thực ----
++
++    /**
++     * GDV ghi nhận việc khách hàng đã đồng ý, kèm bằng chứng độc lập.
++     * Hệ thống không tự sinh ra sự đồng ý của khách hàng.
++     */
++    public ApprovalRecord recordCustomerConsent(AuthenticatedActor recordedBy, String evidenceType, String evidenceRef) {
++        ApprovalRecord record = new ApprovalRecord("CUSTOMER", "Khách hàng", "CUSTOMER", Instant.now().toString());
++        record.setEvidenceType(evidenceType);
++        record.setEvidenceRef(evidenceRef);
++        record.setRecordedByActorId(recordedBy.userId());
++        this.customerRecord = record;
++        return record;
+     }
+ 
+-    public boolean isCustomer() { return customer; }
+-    public void setCustomer(boolean customer) { this.customer = customer; }
++    public ApprovalRecord recordTeller(AuthenticatedActor actor) {
++        this.tellerRecord = new ApprovalRecord(actor.userId(), actor.displayName(), actor.role().name(), Instant.now().toString());
++        return this.tellerRecord;
++    }
++
++    public ApprovalRecord recordSupervisor(AuthenticatedActor actor) {
++        this.supervisorRecord = new ApprovalRecord(actor.userId(), actor.displayName(), actor.role().name(), Instant.now().toString());
++        return this.supervisorRecord;
++    }
++
++    // ---- Giá trị dẫn xuất, chỉ đọc ----
++
++    @JsonProperty(value = "customer", access = JsonProperty.Access.READ_ONLY)
++    public boolean isCustomer() { return customerRecord != null; }
++
++    @JsonProperty(value = "teller", access = JsonProperty.Access.READ_ONLY)
++    public boolean isTeller() { return tellerRecord != null; }
++
++    @JsonProperty(value = "supervisor", access = JsonProperty.Access.READ_ONLY)
++    public boolean isSupervisor() { return supervisorRecord != null; }
++
++    // ---- Bản ghi đầy đủ. Setter chỉ phục vụ Jackson khi nạp lại session từ DB. ----
++
++    public ApprovalRecord getCustomerRecord() { return customerRecord; }
++    public void setCustomerRecord(ApprovalRecord customerRecord) { this.customerRecord = customerRecord; }
+ 
+-    public boolean isTeller() { return teller; }
+-    public void setTeller(boolean teller) { this.teller = teller; }
++    public ApprovalRecord getTellerRecord() { return tellerRecord; }
++    public void setTellerRecord(ApprovalRecord tellerRecord) { this.tellerRecord = tellerRecord; }
+ 
+-    public boolean isSupervisor() { return supervisor; }
+-    public void setSupervisor(boolean supervisor) { this.supervisor = supervisor; }
++    public ApprovalRecord getSupervisorRecord() { return supervisorRecord; }
++    public void setSupervisorRecord(ApprovalRecord supervisorRecord) { this.supervisorRecord = supervisorRecord; }
+ }
+diff --git a/src/main/java/com/dnse/teller/orchestrator/TellerOrchestrator.java b/src/main/java/com/dnse/teller/orchestrator/TellerOrchestrator.java
+index 1223d5f..1123601 100644
+--- a/src/main/java/com/dnse/teller/orchestrator/TellerOrchestrator.java
++++ b/src/main/java/com/dnse/teller/orchestrator/TellerOrchestrator.java
+@@ -2,7 +2,12 @@ package com.dnse.teller.orchestrator;
+ 
+ import com.dnse.teller.mcp.McpServer;
+ import com.dnse.teller.mcp.McpToolRegistry;
++import com.dnse.teller.mcp.ToolCallContext;
++import com.dnse.teller.security.AuthenticatedActor;
++import com.dnse.teller.security.PostingAuthorization;
++import com.dnse.teller.security.PostingAuthorizer;
+ import com.dnse.teller.model.*;
++import com.dnse.teller.model.ApprovalRecord;
+ import com.dnse.teller.model.AgentRuntime.DelegationInfo;
+ import com.dnse.teller.model.BootstrapResponse.Scenario;
+ import com.dnse.teller.model.Session.ChatMessage;
+@@ -27,8 +32,12 @@ public class TellerOrchestrator {
+     private final WorkflowRepository repository;
+     private final WorkflowEngine workflowEngine;
+     private final OpenTelemetryTracer tracer;
++    private final PostingAuthorizer postingAuthorizer;
+     private final Map<String, Session> sessionCache = new ConcurrentHashMap<>();
+ 
++    private static final Set<String> ACCEPTED_CONSENT_EVIDENCE =
++        Set.of("OTP", "SIGNATURE", "DOCUMENT", "BIOMETRIC");
++
+     private static final Map<String, List<String>> ALLOWED_DELEGATIONS = Map.of(
+         "policy_assistance", List.of("policy_agent"),
+         "domestic_transfer", List.of("customer_context_agent", "policy_agent", "transaction_draft_agent", "risk_assistant"),
+@@ -43,7 +52,8 @@ public class TellerOrchestrator {
+             AgentSuite agentSuite,
+             WorkflowRepository repository,
+             WorkflowEngine workflowEngine,
+-            OpenTelemetryTracer tracer
++            OpenTelemetryTracer tracer,
++            PostingAuthorizer postingAuthorizer
+     ) {
+         this.mcpServer = mcpServer;
+         this.toolRegistry = toolRegistry;
+@@ -52,9 +62,19 @@ public class TellerOrchestrator {
+         this.repository = repository;
+         this.workflowEngine = workflowEngine;
+         this.tracer = tracer;
++        this.postingAuthorizer = postingAuthorizer;
+     }
+ 
+     public Session createSession(Map<String, Object> input) {
++        return createSession(input, null);
++    }
++
++    /**
++     * tellerId và branchId lấy từ danh tính đã xác thực, không lấy từ body do
++     * client gửi lên — nếu không, audit trail sẽ ghi lại bất cứ tên nào người
++     * gọi muốn.
++     */
++    public Session createSession(Map<String, Object> input, AuthenticatedActor actor) {
+         String now = Instant.now().toString();
+         Session session = new Session();
+         session.setSessionId(UUID.randomUUID().toString());
+@@ -62,10 +82,13 @@ public class TellerOrchestrator {
+         session.setUpdatedAt(now);
+ 
+         if (input != null) {
+-            if (input.get("branchId") != null) session.setBranchId(String.valueOf(input.get("branchId")));
+             if (input.get("counterId") != null) session.setCounterId(String.valueOf(input.get("counterId")));
+-            if (input.get("tellerId") != null) session.setTellerId(String.valueOf(input.get("tellerId")));
+             if (input.get("customerRef") != null) session.setCustomerRef(String.valueOf(input.get("customerRef")));
++            if (actor == null && input.get("branchId") != null) session.setBranchId(String.valueOf(input.get("branchId")));
++        }
++        if (actor != null) {
++            session.setTellerId(actor.userId());
++            if (actor.branchId() != null) session.setBranchId(actor.branchId());
+         }
+ 
+         addEvent(session, "SESSION", "Mở phiên B.Smart", session.getBranchId() + " · " + session.getCounterId());
+@@ -263,76 +286,156 @@ public class TellerOrchestrator {
+         return save(session);
+     }
+ 
+-    public synchronized Session approve(String sessionId, String actor) {
++    /**
++     * P0-3: phê duyệt gắn với danh tính đã xác thực.
++     *
++     * Bản cũ nhận "actor" là chuỗi tự do từ request body — bất kỳ ai POST
++     * {"actor":"supervisor"} đều trở thành kiểm soát viên, và không có ràng
++     * buộc nào ngăn GDV tự ký mắt thứ hai cho chính mình.
++     */
++    public synchronized Session approve(String sessionId, String requestedRole, AuthenticatedActor actor) {
++        Objects.requireNonNull(actor, "actor");
+         Session session = findSession(sessionId);
+-        if (!List.of("DRAFT_READY", "AWAITING_APPROVAL", "READY_TO_POST").contains(session.getStatus())) {
+-            throw new OrchestratorException("Bản nháp chưa sẵn sàng để phê duyệt.", "DRAFT_NOT_READY", 400);
+-        }
+-        if (!List.of("customer", "teller", "supervisor").contains(actor)) {
+-            throw new OrchestratorException("Actor phê duyệt không hợp lệ: " + actor, "INVALID_APPROVER", 400);
+-        }
+-        if ("teller".equals(actor) && !session.getApprovals().isCustomer()) {
+-            throw new OrchestratorException("Khách hàng phải xác nhận trước Teller.", "CUSTOMER_APPROVAL_REQUIRED", 400);
+-        }
++        requireApprovable(session);
+ 
+-        boolean supReq = false;
+-        if (session.getTransactionDraft().getLimit() != null) {
+-            Object req = session.getTransactionDraft().getLimit().get("supervisorRequired");
+-            if (Boolean.TRUE.equals(req)) supReq = true;
+-        }
++        String role = requestedRole != null ? requestedRole.trim().toLowerCase() : "";
+ 
+-        if ("supervisor".equals(actor) && !supReq) {
+-            throw new OrchestratorException("Giao dịch này không yêu cầu kiểm soát viên.", "SUPERVISOR_NOT_REQUIRED", 400);
++        switch (role) {
++            case "teller" -> {
++                actor.requireRole(AuthenticatedActor.Role.TELLER);
++                if (!session.getApprovals().isCustomer()) {
++                    throw new OrchestratorException(
++                        "Khách hàng phải xác nhận trước Teller.", "CUSTOMER_APPROVAL_REQUIRED", 400);
++                }
++                session.getApprovals().recordTeller(actor);
++            }
++            case "supervisor" -> {
++                actor.requireRole(AuthenticatedActor.Role.SUPERVISOR);
++                if (!supervisorRequired(session)) {
++                    throw new OrchestratorException(
++                        "Giao dịch này không yêu cầu kiểm soát viên.", "SUPERVISOR_NOT_REQUIRED", 400);
++                }
++                ApprovalRecord tellerRecord = session.getApprovals().getTellerRecord();
++                if (tellerRecord != null && actor.userId().equals(tellerRecord.getActorId())) {
++                    throw new OrchestratorException(
++                        "Vi phạm nguyên tắc 4 mắt: kiểm soát viên trùng với GDV lập giao dịch.",
++                        "SEGREGATION_OF_DUTIES_VIOLATION", 403);
++                }
++                session.getApprovals().recordSupervisor(actor);
++            }
++            case "customer" -> throw new OrchestratorException(
++                "Xác nhận của khách hàng phải đi qua /consent kèm bằng chứng.",
++                "CUSTOMER_CONSENT_REQUIRES_EVIDENCE", 400);
++            default -> throw new OrchestratorException(
++                "Vai trò phê duyệt không hợp lệ: " + requestedRole, "INVALID_APPROVER", 400);
+         }
+ 
+-        if ("customer".equals(actor)) session.getApprovals().setCustomer(true);
+-        if ("teller".equals(actor)) session.getApprovals().setTeller(true);
+-        if ("supervisor".equals(actor)) session.getApprovals().setSupervisor(true);
+-
+-        // Signal Temporal Workflow Engine
+-        workflowEngine.signal("WF-" + sessionId, "Approval_" + actor, true);
++        workflowEngine.signal("WF-" + sessionId, "Approval_" + role, actor.userId());
++        addEvent(session, "APPROVAL", labelActor(role) + " đã xác nhận",
++            actor.displayName() + " (" + actor.userId() + ")");
+ 
+-        addEvent(session, "APPROVAL", labelActor(actor) + " đã xác nhận", "Approval được ghi tại checkpoint.");
+         evaluateControl(session);
+         session.setStatus(session.getControl().isPostingAllowed() ? "READY_TO_POST" : "AWAITING_APPROVAL");
+         return save(session);
+     }
+ 
+-    public synchronized Session execute(String sessionId) throws Exception {
++    /**
++     * P0-4: GDV ghi nhận việc khách hàng đã đồng ý, KÈM BẰNG CHỨNG.
++     *
++     * Bản cũ tự đặt approvals.customer = true bên trong confirmAndExecuteCash
++     * rồi ghi vào audit trail dòng "Ghi nhận khách hàng đồng ý" — tức hệ thống
++     * tự sinh ra sự đồng ý của khách hàng và tự chứng nhận điều đó.
++     */
++    public synchronized Session recordCustomerConsent(String sessionId, AuthenticatedActor actor,
++                                                      String evidenceType, String evidenceRef) {
++        Objects.requireNonNull(actor, "actor");
++        actor.requireRole(AuthenticatedActor.Role.TELLER);
++
+         Session session = findSession(sessionId);
++        requireApprovable(session);
++
++        String type = evidenceType != null ? evidenceType.trim().toUpperCase() : "";
++        if (!ACCEPTED_CONSENT_EVIDENCE.contains(type)) {
++            throw new OrchestratorException(
++                "Loại bằng chứng đồng ý không hợp lệ. Chấp nhận: " + ACCEPTED_CONSENT_EVIDENCE,
++                "CONSENT_EVIDENCE_INVALID", 400);
++        }
++        if (evidenceRef == null || evidenceRef.trim().isEmpty()) {
++            throw new OrchestratorException(
++                "Thiếu tham chiếu bằng chứng (mã OTP, số phiếu, mã chứng từ).",
++                "CONSENT_EVIDENCE_REF_MISSING", 400);
++        }
++
++        session.getApprovals().recordCustomerConsent(actor, type, evidenceRef.trim());
++        addEvent(session, "APPROVAL", "Khách hàng đã xác nhận",
++            "Bằng chứng " + type + " · " + evidenceRef.trim() + " · ghi nhận bởi " + actor.userId());
++
+         evaluateControl(session);
+-        if (!session.getControl().isPostingAllowed()) {
+-            throw new OrchestratorException("Chưa đủ control gate: " + String.join(", ", session.getControl().getMissingGates()), "CONTROL_GATES_INCOMPLETE", 400);
++        session.setStatus(session.getControl().isPostingAllowed() ? "READY_TO_POST" : "AWAITING_APPROVAL");
++        return save(session);
++    }
++
++    private void requireApprovable(Session session) {
++        if (!List.of("DRAFT_READY", "AWAITING_APPROVAL", "READY_TO_POST").contains(session.getStatus())) {
++            throw new OrchestratorException("Bản nháp chưa sẵn sàng để phê duyệt.", "DRAFT_NOT_READY", 400);
+         }
++    }
++
++    private boolean supervisorRequired(Session session) {
++        if (session.getTransactionDraft() == null || session.getTransactionDraft().getLimit() == null) return false;
++        return Boolean.TRUE.equals(session.getTransactionDraft().getLimit().get("supervisorRequired"));
++    }
++
++    /**
++     * P0-1/P0-2/P1-5: hạch toán chỉ xảy ra sau khi PostingAuthorizer tự kiểm
++     * chứng lại toàn bộ control gate từ dữ liệu ĐÃ PERSIST, và tool tài chính
++     * chỉ nhận lệnh qua giấy phép đó.
++     */
++    public synchronized Session execute(String sessionId, AuthenticatedActor actor) throws Exception {
++        Objects.requireNonNull(actor, "actor");
++        actor.requireRole(AuthenticatedActor.Role.TELLER);
++
++        Session session = findSession(sessionId);
+ 
+         if (session.getExecution() != null && "POSTED".equals(session.getExecution().getStatus())) {
+             return cloneSession(session);
+         }
+ 
+-        if (session.getTransactionId() == null) {
+-            session.setTransactionId(UUID.randomUUID().toString());
++        ApprovalRecord tellerRecord = session.getApprovals().getTellerRecord();
++        if (tellerRecord == null || !actor.userId().equals(tellerRecord.getActorId())) {
++            throw new OrchestratorException(
++                "Chỉ GDV đã xác nhận giao dịch mới được gửi hạch toán.", "TELLER_MISMATCH", 403);
++        }
++
++        evaluateControl(session);
++        if (!session.getControl().isPostingAllowed()) {
++            throw new OrchestratorException(
++                "Chưa đủ control gate: " + String.join(", ", session.getControl().getMissingGates()),
++                "CONTROL_GATES_INCOMPLETE", 400);
+         }
+ 
+         session.setStatus("POSTING_REQUESTED");
+-        addEvent(session, "CONTROL", "Business Orchestrator cho phép posting", "Agent không trực tiếp gọi financial-write tool.");
++        addEvent(session, "CONTROL", "Yêu cầu cấp giấy phép hạch toán",
++            "Agent không có đường đi trực tiếp tới financial-write tool.");
++        save(session); // persist trước, để authorizer kiểm chứng trên dữ liệu bền vững
+ 
+-        String capabilityId = session.getWorkflow().startsWith("cash_") ? "core.cash.execute" : "core.transfer.execute";
++        PostingAuthorization authorization = postingAuthorizer.authorize(sessionId);
++        session.setTransactionId(authorization.getIdempotencyKey());
+ 
+         Map<String, Object> draftArgs = new HashMap<>();
+-        if (session.getTransactionDraft().getAmount() != null) draftArgs.put("amount", session.getTransactionDraft().getAmount());
+-        if (session.getTransactionDraft().getBeneficiaryAccount() != null) draftArgs.put("beneficiaryAccount", session.getTransactionDraft().getBeneficiaryAccount());
+-        if (session.getTransactionDraft().getBeneficiaryName() != null) draftArgs.put("beneficiaryName", session.getTransactionDraft().getBeneficiaryName());
+-        if (session.getTransactionDraft().getBankCode() != null) draftArgs.put("bankCode", session.getTransactionDraft().getBankCode());
+-        if (session.getTransactionDraft().getSourceAccountRef() != null) draftArgs.put("sourceAccountRef", session.getTransactionDraft().getSourceAccountRef());
+-        if (session.getTransactionDraft().getAccountNumber() != null) draftArgs.put("accountNumber", session.getTransactionDraft().getAccountNumber());
+-        if (session.getTransactionDraft().getTransactionType() != null) draftArgs.put("transactionType", session.getTransactionDraft().getTransactionType());
++        TransactionDraft draft = session.getTransactionDraft();
++        if (draft.getAmount() != null) draftArgs.put("amount", draft.getAmount());
++        if (draft.getBeneficiaryAccount() != null) draftArgs.put("beneficiaryAccount", draft.getBeneficiaryAccount());
++        if (draft.getBeneficiaryName() != null) draftArgs.put("beneficiaryName", draft.getBeneficiaryName());
++        if (draft.getBankCode() != null) draftArgs.put("bankCode", draft.getBankCode());
++        if (draft.getSourceAccountRef() != null) draftArgs.put("sourceAccountRef", draft.getSourceAccountRef());
++        if (draft.getAccountNumber() != null) draftArgs.put("accountNumber", draft.getAccountNumber());
++        if (draft.getTransactionType() != null) draftArgs.put("transactionType", draft.getTransactionType());
+ 
+         Map<String, Object> call = mcpServer.executeDirect(
+-            "business_orchestrator",
+-            session.getWorkflow(),
+-            capabilityId,
+-            draftArgs,
+-            session.getTransactionId()
++            ToolCallContext.forPosting(authorization),
++            authorization.getCapabilityId(),
++            draftArgs
+         );
+ 
+         session.getAgentRuntime().getToolCalls().add(call);
+@@ -350,38 +453,35 @@ public class TellerOrchestrator {
+         session.setExecution(exec);
+         session.setStatus(exec.getStatus());
+ 
+-        // Complete Durable Workflow Execution in SQLite
+-        workflowEngine.completeWorkflow("WF-" + sessionId, Map.of("coreReference", exec.getCoreReference(), "status", exec.getStatus()));
++        workflowEngine.completeWorkflow("WF-" + sessionId,
++            Map.of("coreReference", exec.getCoreReference(), "status", exec.getStatus()));
+ 
+-        addEvent(session, "CORE", "Core banking mock phản hồi qua Internal API Gateway", exec.getStatus() + " · " + exec.getCoreReference());
+-        session.getMessages().add(new ChatMessage("assistant", "Giao dịch mock đã ghi nhận: " + exec.getCoreReference() + ".", Instant.now().toString()));
++        addEvent(session, "CORE", "Core banking mock phản hồi qua Internal API Gateway",
++            exec.getStatus() + " · " + exec.getCoreReference() + " · GDV " + authorization.getTellerActorId());
++        session.getMessages().add(new ChatMessage("assistant",
++            "Giao dịch mock đã ghi nhận: " + exec.getCoreReference() + ".", Instant.now().toString()));
+         return save(session);
+     }
+ 
+-    public synchronized Session confirmAndExecuteCash(String sessionId) throws Exception {
++    /**
++     * P0-4: chỉ còn là bước gửi hạch toán cho luồng tiền mặt. Không tự đặt cờ
++     * phê duyệt thay cho khách hàng và GDV nữa — hai bước đó phải đã xảy ra
++     * tường minh qua recordCustomerConsent() và approve().
++     */
++    public synchronized Session confirmAndExecuteCash(String sessionId, AuthenticatedActor actor) throws Exception {
+         Session session = findSession(sessionId);
+         if (session.getWorkflow() == null || !session.getWorkflow().startsWith("cash_")) {
+-            throw new OrchestratorException("Thao tác này chỉ áp dụng cho màn hình nộp/rút tiền.", "CASH_WORKFLOW_REQUIRED", 400);
++            throw new OrchestratorException(
++                "Thao tác này chỉ áp dụng cho màn hình nộp/rút tiền.", "CASH_WORKFLOW_REQUIRED", 400);
+         }
+-        if (!"DRAFT_READY".equals(session.getStatus())) {
+-            throw new OrchestratorException("Bản nháp tiền mặt chưa sẵn sàng để GDV xác nhận.", "DRAFT_NOT_READY", 400);
++        if (!session.getApprovals().isCustomer()) {
++            throw new OrchestratorException(
++                "Chưa ghi nhận xác nhận của khách hàng kèm bằng chứng.", "CUSTOMER_CONSENT_MISSING", 400);
+         }
+-
+-        boolean supReq = false;
+-        if (session.getTransactionDraft().getLimit() != null) {
+-            Object req = session.getTransactionDraft().getLimit().get("supervisorRequired");
+-            if (Boolean.TRUE.equals(req)) supReq = true;
+-        }
+-
+-        if (supReq) {
+-            throw new OrchestratorException("Giao dịch vượt hạn mức GDV và cần kiểm soát viên xác nhận riêng.", "SUPERVISOR_APPROVAL_REQUIRED", 400);
++        if (!session.getApprovals().isTeller()) {
++            throw new OrchestratorException("Chưa có xác nhận của GDV.", "TELLER_APPROVAL_MISSING", 400);
+         }
+-
+-        session.getApprovals().setCustomer(true);
+-        session.getApprovals().setTeller(true);
+-        addEvent(session, "APPROVAL", "GDV đã verify và xác nhận Submit", "Ghi nhận khách hàng đồng ý và GDV đã kiểm tra dữ liệu tự điền.");
+-        evaluateControl(session);
+-        return execute(sessionId);
++        return execute(sessionId, actor);
+     }
+ 
+     public BootstrapResponse bootstrap() {
+diff --git a/src/main/java/com/dnse/teller/security/ActorResolver.java b/src/main/java/com/dnse/teller/security/ActorResolver.java
+new file mode 100644
+index 0000000..0af405c
+--- /dev/null
++++ b/src/main/java/com/dnse/teller/security/ActorResolver.java
+@@ -0,0 +1,66 @@
++package com.dnse.teller.security;
++
++import jakarta.servlet.http.HttpServletRequest;
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.stereotype.Service;
++
++/**
++ * Điểm nối (seam) duy nhất giữa hạ tầng xác thực và logic nghiệp vụ.
++ *
++ * POC: đọc danh tính từ header do reverse proxy / BFF đã xác thực đặt vào.
++ * PRODUCTION: thay thân hàm {@link #resolve} bằng việc đọc từ
++ * SecurityContextHolder sau khi cấu hình Spring Security + OIDC. Toàn bộ phần
++ * còn lại của hệ thống KHÔNG cần sửa, vì không nơi nào khác được phép tự dựng
++ * {@link AuthenticatedActor}.
++ *
++ * Chế độ trust-header chỉ được bật khi teller.security.trust-headers=true và
++ * mặc định là false, để không ai vô tình chạy production với cơ chế này.
++ */
++@Service
++public class ActorResolver {
++
++    static final String HEADER_ID = "X-Actor-Id";
++    static final String HEADER_NAME = "X-Actor-Name";
++    static final String HEADER_ROLE = "X-Actor-Role";
++    static final String HEADER_BRANCH = "X-Actor-Branch";
++
++    private final boolean trustHeaders;
++
++    public ActorResolver(@Value("${teller.security.trust-headers:false}") boolean trustHeaders) {
++        this.trustHeaders = trustHeaders;
++    }
++
++    public AuthenticatedActor resolve(HttpServletRequest request) {
++        if (!trustHeaders) {
++            throw new AuthorizationException(
++                    "Chưa cấu hình nguồn xác thực. Bật teller.security.trust-headers cho môi trường POC "
++                            + "hoặc cấu hình OIDC cho môi trường thật.",
++                    "AUTHENTICATION_NOT_CONFIGURED", 401);
++        }
++        if (request == null) {
++            throw new AuthorizationException("Không có ngữ cảnh request để xác thực.", "NO_REQUEST_CONTEXT", 401);
++        }
++
++        String userId = trimToNull(request.getHeader(HEADER_ID));
++        String role = trimToNull(request.getHeader(HEADER_ROLE));
++        String name = trimToNull(request.getHeader(HEADER_NAME));
++        String branch = trimToNull(request.getHeader(HEADER_BRANCH));
++
++        if (userId == null) {
++            throw new AuthorizationException("Request thiếu " + HEADER_ID + ".", "ACTOR_ID_MISSING", 401);
++        }
++
++        return new AuthenticatedActor(
++                userId,
++                name != null ? name : userId,
++                AuthenticatedActor.Role.parse(role),
++                branch
++        );
++    }
++
++    private static String trimToNull(String value) {
++        if (value == null) return null;
++        String trimmed = value.trim();
++        return trimmed.isEmpty() ? null : trimmed;
++    }
++}
+diff --git a/src/main/java/com/dnse/teller/security/AuthenticatedActor.java b/src/main/java/com/dnse/teller/security/AuthenticatedActor.java
+new file mode 100644
+index 0000000..fbce914
+--- /dev/null
++++ b/src/main/java/com/dnse/teller/security/AuthenticatedActor.java
+@@ -0,0 +1,58 @@
++package com.dnse.teller.security;
++
++/**
++ * Danh tính đã được xác thực của người đang thao tác.
++ *
++ * KHÁC BIỆT CỐT LÕI so với bản cũ: trước đây "actor" là một chuỗi tự do lấy từ
++ * request body, nên bất kỳ ai cũng có thể tự xưng là supervisor. Từ nay mọi
++ * quyết định phân quyền phải dựa trên đối tượng này, và đối tượng này chỉ được
++ * sinh ra bởi {@link ActorResolver} từ nguồn xác thực.
++ */
++public record AuthenticatedActor(
++        String userId,
++        String displayName,
++        Role role,
++        String branchId
++) {
++
++    public enum Role {
++        /** Giao dịch viên tại quầy. */
++        TELLER,
++        /** Kiểm soát viên — mắt thứ hai của maker-checker. */
++        SUPERVISOR,
++        /** Quản trị chính sách bảo mật MCP. Không được phép tác nghiệp giao dịch. */
++        SECURITY_ADMIN;
++
++        public static Role parse(String raw) {
++            if (raw == null) {
++                throw new AuthorizationException("Thiếu vai trò người dùng.", "ACTOR_ROLE_MISSING", 401);
++            }
++            try {
++                return Role.valueOf(raw.trim().toUpperCase());
++            } catch (IllegalArgumentException ex) {
++                throw new AuthorizationException("Vai trò không hợp lệ: " + raw, "ACTOR_ROLE_INVALID", 403);
++            }
++        }
++    }
++
++    public AuthenticatedActor {
++        if (userId == null || userId.isBlank()) {
++            throw new AuthorizationException("Thiếu định danh người dùng.", "ACTOR_ID_MISSING", 401);
++        }
++        if (role == null) {
++            throw new AuthorizationException("Thiếu vai trò người dùng.", "ACTOR_ROLE_MISSING", 401);
++        }
++    }
++
++    public boolean hasRole(Role expected) {
++        return role == expected;
++    }
++
++    public void requireRole(Role expected) {
++        if (!hasRole(expected)) {
++            throw new AuthorizationException(
++                    "Vai trò " + role + " không được phép thực hiện thao tác yêu cầu vai trò " + expected + ".",
++                    "ROLE_NOT_PERMITTED", 403);
++        }
++    }
++}
+diff --git a/src/main/java/com/dnse/teller/security/AuthorizationException.java b/src/main/java/com/dnse/teller/security/AuthorizationException.java
+new file mode 100644
+index 0000000..f8f1609
+--- /dev/null
++++ b/src/main/java/com/dnse/teller/security/AuthorizationException.java
+@@ -0,0 +1,16 @@
++package com.dnse.teller.security;
++
++/** Lỗi phân quyền / kiểm soát. Luôn fail-closed: ném ra là từ chối, không có nhánh "cho qua". */
++public class AuthorizationException extends RuntimeException {
++    private final String code;
++    private final int status;
++
++    public AuthorizationException(String message, String code, int status) {
++        super(message);
++        this.code = code;
++        this.status = status;
++    }
++
++    public String getCode() { return code; }
++    public int getStatus() { return status; }
++}
+diff --git a/src/main/java/com/dnse/teller/security/PostingAuthorization.java b/src/main/java/com/dnse/teller/security/PostingAuthorization.java
+new file mode 100644
+index 0000000..12e1318
+--- /dev/null
++++ b/src/main/java/com/dnse/teller/security/PostingAuthorization.java
+@@ -0,0 +1,50 @@
++package com.dnse.teller.security;
++
++/**
++ * Giấy phép hạch toán cho MỘT giao dịch cụ thể.
++ *
++ * P0-1/P0-2: trước đây quyền post core được thể hiện bằng chuỗi
++ * "business_orchestrator" — mà chuỗi thì ai cũng gõ được, và tool tài chính còn
++ * tự hardcode chuỗi đó khi gọi gateway, khiến kiểm tra quyền thành code chết.
++ *
++ * Lớp này không có constructor public. Chỉ {@link PostingAuthorizer} (cùng
++ * package) mới tạo được, và chỉ sau khi đã tự mình kiểm chứng lại toàn bộ
++ * control gate từ dữ liệu đã persist. Vì vậy tầng HTTP không thể dựng ra nó,
++ * và LLM cũng không thể "nói" ra nó.
++ */
++public final class PostingAuthorization {
++
++    private final String sessionId;
++    private final String workflow;
++    private final String capabilityId;
++    private final String idempotencyKey;
++    private final long amount;
++    private final String tellerActorId;
++    private final String supervisorActorId;
++    private final int sessionRevision;
++    private final String issuedAt;
++
++    PostingAuthorization(String sessionId, String workflow, String capabilityId, String idempotencyKey,
++                         long amount, String tellerActorId, String supervisorActorId,
++                         int sessionRevision, String issuedAt) {
++        this.sessionId = sessionId;
++        this.workflow = workflow;
++        this.capabilityId = capabilityId;
++        this.idempotencyKey = idempotencyKey;
++        this.amount = amount;
++        this.tellerActorId = tellerActorId;
++        this.supervisorActorId = supervisorActorId;
++        this.sessionRevision = sessionRevision;
++        this.issuedAt = issuedAt;
++    }
++
++    public String getSessionId() { return sessionId; }
++    public String getWorkflow() { return workflow; }
++    public String getCapabilityId() { return capabilityId; }
++    public String getIdempotencyKey() { return idempotencyKey; }
++    public long getAmount() { return amount; }
++    public String getTellerActorId() { return tellerActorId; }
++    public String getSupervisorActorId() { return supervisorActorId; }
++    public int getSessionRevision() { return sessionRevision; }
++    public String getIssuedAt() { return issuedAt; }
++}
+diff --git a/src/main/java/com/dnse/teller/security/PostingAuthorizer.java b/src/main/java/com/dnse/teller/security/PostingAuthorizer.java
+new file mode 100644
+index 0000000..a79339b
+--- /dev/null
++++ b/src/main/java/com/dnse/teller/security/PostingAuthorizer.java
+@@ -0,0 +1,156 @@
++package com.dnse.teller.security;
++
++import com.dnse.teller.model.ApprovalRecord;
++import com.dnse.teller.model.Approvals;
++import com.dnse.teller.model.Session;
++import com.dnse.teller.model.TransactionDraft;
++import com.dnse.teller.persistence.WorkflowRepository;
++import org.springframework.stereotype.Service;
++
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.time.Instant;
++import java.util.HexFormat;
++import java.util.Optional;
++
++/**
++ * Nơi duy nhất cấp quyền hạch toán.
++ *
++ * Nguyên tắc: KHÔNG tin state trong bộ nhớ do orchestrator đưa sang. Nạp lại
++ * session đã persist và tự kiểm chứng độc lập. Đây là "last-mile check" —
++ * nếu một lỗi logic ở tầng trên làm hỏng control gate, tầng này vẫn chặn.
++ */
++@Service
++public class PostingAuthorizer {
++
++    private final WorkflowRepository repository;
++
++    public PostingAuthorizer(WorkflowRepository repository) {
++        this.repository = repository;
++    }
++
++    public PostingAuthorization authorize(String sessionId) {
++        Optional<Session> persisted = repository.findSessionById(sessionId);
++        if (persisted.isEmpty()) {
++            throw new AuthorizationException(
++                    "Không tìm thấy session đã persist để cấp quyền hạch toán: " + sessionId,
++                    "SESSION_NOT_PERSISTED", 409);
++        }
++        Session session = persisted.get();
++
++        if (session.getExecution() != null && "POSTED".equals(session.getExecution().getStatus())) {
++            throw new AuthorizationException("Giao dịch đã được hạch toán.", "ALREADY_POSTED", 409);
++        }
++
++        String workflow = session.getWorkflow();
++        if (workflow == null || !(workflow.startsWith("cash_") || "domestic_transfer".equals(workflow))) {
++            throw new AuthorizationException(
++                    "Workflow '" + workflow + "' không phải luồng giao dịch tài chính.",
++                    "WORKFLOW_NOT_FINANCIAL", 403);
++        }
++
++        TransactionDraft draft = session.getTransactionDraft();
++        if (draft == null || draft.getValidation() == null || !Boolean.TRUE.equals(draft.getValidation().getValid())) {
++            throw new AuthorizationException("Bản nháp chưa hợp lệ.", "DRAFT_NOT_VALID", 400);
++        }
++        if (draft.getAmount() == null || draft.getAmount() <= 0) {
++            throw new AuthorizationException("Số tiền không hợp lệ.", "AMOUNT_INVALID", 400);
++        }
++
++        if (session.getRisk() == null || !"PASS".equals(session.getRisk().getDecision())) {
++            throw new AuthorizationException("Kết quả rà soát rủi ro chưa PASS.", "RISK_NOT_PASSED", 403);
++        }
++
++        if (session.getControl() == null || !session.getControl().isPostingAllowed()) {
++            throw new AuthorizationException("Control gate chưa đủ điều kiện.", "CONTROL_GATES_INCOMPLETE", 400);
++        }
++
++        Approvals approvals = session.getApprovals();
++        if (approvals == null) {
++            throw new AuthorizationException("Thiếu bản ghi phê duyệt.", "APPROVALS_MISSING", 400);
++        }
++
++        ApprovalRecord customer = approvals.getCustomerRecord();
++        if (customer == null || isBlank(customer.getEvidenceType()) || isBlank(customer.getRecordedByActorId())) {
++            throw new AuthorizationException(
++                    "Thiếu xác nhận của khách hàng kèm bằng chứng.", "CUSTOMER_CONSENT_MISSING", 400);
++        }
++
++        ApprovalRecord teller = approvals.getTellerRecord();
++        if (teller == null || isBlank(teller.getActorId())) {
++            throw new AuthorizationException("Thiếu xác nhận của GDV.", "TELLER_APPROVAL_MISSING", 400);
++        }
++
++        boolean supervisorRequired = supervisorRequired(draft);
++        ApprovalRecord supervisor = approvals.getSupervisorRecord();
++        if (supervisorRequired) {
++            if (supervisor == null || isBlank(supervisor.getActorId())) {
++                throw new AuthorizationException(
++                        "Giao dịch vượt hạn mức, cần kiểm soát viên xác nhận.", "SUPERVISOR_APPROVAL_MISSING", 400);
++            }
++            // Phân tách trách nhiệm: mắt thứ hai phải là người khác.
++            if (teller.getActorId().equals(supervisor.getActorId())) {
++                throw new AuthorizationException(
++                        "Vi phạm nguyên tắc 4 mắt: GDV và kiểm soát viên là cùng một người ("
++                                + teller.getActorId() + ").",
++                        "SEGREGATION_OF_DUTIES_VIOLATION", 403);
++            }
++        }
++
++        // Khách hàng phải được ghi nhận bởi chính GDV đang chịu trách nhiệm giao dịch.
++        if (!teller.getActorId().equals(customer.getRecordedByActorId())) {
++            throw new AuthorizationException(
++                    "GDV ghi nhận đồng ý của khách hàng khác với GDV xác nhận giao dịch.",
++                    "CONSENT_RECORDER_MISMATCH", 403);
++        }
++
++        String capabilityId = workflow.startsWith("cash_") ? "core.cash.execute" : "core.transfer.execute";
++
++        return new PostingAuthorization(
++                session.getSessionId(),
++                workflow,
++                capabilityId,
++                deriveIdempotencyKey(session),
++                draft.getAmount(),
++                teller.getActorId(),
++                supervisor != null ? supervisor.getActorId() : null,
++                session.getRevision(),
++                Instant.now().toString()
++        );
++    }
++
++    /**
++     * P1-5: idempotency key phải là hàm xác định của nội dung nghiệp vụ.
++     * UUID ngẫu nhiên sinh lúc execute sẽ tạo key mới sau mỗi lần crash-retry,
++     * dẫn tới hạch toán trùng.
++     */
++    public static String deriveIdempotencyKey(Session session) {
++        TransactionDraft d = session.getTransactionDraft();
++        String material = String.join("|",
++                nz(session.getSessionId()),
++                nz(session.getWorkflow()),
++                nz(d.getSourceAccountRef()),
++                nz(d.getAccountNumber()),
++                nz(d.getBeneficiaryAccount()),
++                nz(d.getBankCode()),
++                nz(d.getTransactionType()),
++                d.getAmount() != null ? String.valueOf(d.getAmount()) : "0"
++        );
++        try {
++            MessageDigest digest = MessageDigest.getInstance("SHA-256");
++            byte[] hash = digest.digest(material.getBytes(StandardCharsets.UTF_8));
++            return "IDK-" + HexFormat.of().formatHex(hash).substring(0, 32);
++        } catch (Exception ex) {
++            throw new AuthorizationException("Không tạo được idempotency key.", "IDEMPOTENCY_KEY_ERROR", 500);
++        }
++    }
++
++    private static boolean supervisorRequired(TransactionDraft draft) {
++        if (draft.getLimit() == null) return false;
++        return Boolean.TRUE.equals(draft.getLimit().get("supervisorRequired"));
++    }
++
++    private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
++
++    private static String nz(String s) { return s == null ? "" : s; }
++}
+diff --git a/src/main/resources/application.properties b/src/main/resources/application.properties
+index 7e3ee24..8fa19d5 100644
+--- a/src/main/resources/application.properties
++++ b/src/main/resources/application.properties
+@@ -16,3 +16,8 @@ deepseek.api.key=${DEEPSEEK_API_KEY:}
+ deepseek.api.model=${DEEPSEEK_MODEL:deepseek-chat}
+ deepseek.api.temperature=0.1
+ deepseek.api.timeout-seconds=25
++
++# P0-3: nguồn xác thực danh tính.
++# false (mặc định) = từ chối mọi request cho tới khi cấu hình OIDC.
++# Chạy POC cục bộ: TELLER_TRUST_HEADERS=true mvn spring-boot:run
++teller.security.trust-headers=${TELLER_TRUST_HEADERS:false}
+diff --git a/src/test/java/com/dnse/teller/AdversarialControlTest.java b/src/test/java/com/dnse/teller/AdversarialControlTest.java
+new file mode 100644
+index 0000000..2f92506
+--- /dev/null
++++ b/src/test/java/com/dnse/teller/AdversarialControlTest.java
+@@ -0,0 +1,218 @@
++package com.dnse.teller;
++
++import com.dnse.teller.mcp.McpSecurityPolicyProvider;
++import com.dnse.teller.mcp.McpServer;
++import com.dnse.teller.model.Session;
++import com.dnse.teller.orchestrator.TellerOrchestrator;
++import com.dnse.teller.orchestrator.TellerOrchestrator.OrchestratorException;
++import com.dnse.teller.security.AuthorizationException;
++import com.dnse.teller.security.PostingAuthorizer;
++import org.junit.jupiter.api.DisplayName;
++import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.http.MediaType;
++import org.springframework.test.web.servlet.MockMvc;
++
++import java.util.Map;
++
++import static org.junit.jupiter.api.Assertions.*;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
++
++/**
++ * Bộ test đối kháng: mỗi test tương ứng một lỗ hổng P0 đã được vá.
++ *
++ * Đây là nhóm test có giá trị nhất cho hệ thống này — test "đường hạnh phúc"
++ * không phát hiện được việc một lớp kiểm soát tồn tại nhưng có đường vòng.
++ */
++@SpringBootTest
++@AutoConfigureMockMvc
++public class AdversarialControlTest {
++
++    @Autowired private MockMvc mockMvc;
++    @Autowired private McpServer mcpServer;
++    @Autowired private TellerOrchestrator orchestrator;
++    @Autowired private McpSecurityPolicyProvider policyProvider;
++    @Autowired private PostingAuthorizer postingAuthorizer;
++
++    // ---------- P0-1 ----------
++
++    @Test
++    @DisplayName("P0-1: không post được core qua endpoint MCP công khai")
++    void financialWriteIsNotReachableOverHttp() throws Exception {
++        String payload = """
++            {"jsonrpc":"2.0","id":1,"method":"tools/call",
++             "params":{"name":"core.transfer.execute","idempotencyKey":"attack-1",
++             "arguments":{"amount":5000000000,"beneficiaryAccount":"999999999"}}}
++            """;
++
++        mockMvc.perform(post("/api/mcp").contentType(MediaType.APPLICATION_JSON).content(payload))
++            .andExpect(status().isOk())
++            .andExpect(jsonPath("$.error").exists())
++            .andExpect(jsonPath("$.error.data.code").value("FINANCIAL_WRITE_NOT_EXPOSED"));
++    }
++
++    @Test
++    @DisplayName("P0-1: lời gọi tool không khai báo caller/workflow bị từ chối")
++    void missingCallerIsRejectedInsteadOfDefaultingToPrivilege() throws Exception {
++        String payload = """
++            {"jsonrpc":"2.0","id":2,"method":"tools/call",
++             "params":{"name":"fx.rate.lookup","arguments":{"currency":"USD"}}}
++            """;
++
++        mockMvc.perform(post("/api/mcp").contentType(MediaType.APPLICATION_JSON).content(payload))
++            .andExpect(status().isOk())
++            .andExpect(jsonPath("$.error.data.code").value("TOOL_CONTEXT_MISSING"));
++    }
++
++    // ---------- P0-2 ----------
++
++    @Test
++    @DisplayName("P0-2: agent tự xưng business_orchestrator vẫn không post được core")
++    void agentCannotPostCoreWithoutAuthorization() {
++        McpServer.McpSecurityException ex = assertThrows(McpServer.McpSecurityException.class, () ->
++            mcpServer.executeDirect(
++                "business_orchestrator", "domestic_transfer", "core.transfer.execute",
++                Map.of("amount", 1_000_000L, "beneficiaryAccount", "123"), "forged-key"));
++
++        assertEquals("POSTING_AUTHORIZATION_MISSING", ex.getCode());
++    }
++
++    // ---------- P0-3 ----------
++
++    @Test
++    @DisplayName("P0-3: GDV không thể tự ký mắt thứ hai với vai trò kiểm soát viên")
++    void tellerCannotActAsSupervisor() throws Exception {
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
++        orchestrator.processMessage(opened.getSessionId(),
++            "Chuyển 50 triệu cho Nguyễn Văn An tại VCB, số tài khoản 012345678901");
++
++        AuthorizationException ex = assertThrows(AuthorizationException.class, () ->
++            orchestrator.approve(opened.getSessionId(), "supervisor", TestActors.TELLER));
++
++        assertEquals("ROLE_NOT_PERMITTED", ex.getCode());
++    }
++
++    @Test
++    @DisplayName("P0-3: không xác thực thì không tạo được phiên")
++    void unauthenticatedRequestIsRejected() throws Exception {
++        mockMvc.perform(post("/api/sessions").contentType(MediaType.APPLICATION_JSON).content("{}"))
++            .andExpect(status().isUnauthorized())
++            .andExpect(jsonPath("$.error.code").value("ACTOR_ID_MISSING"));
++    }
++
++    // ---------- P0-4 ----------
++
++    @Test
++    @DisplayName("P0-4: không tự sinh ra sự đồng ý của khách hàng")
++    void cashSubmitRequiresRealCustomerConsent() throws Exception {
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
++        orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
++
++        OrchestratorException ex = assertThrows(OrchestratorException.class, () ->
++            orchestrator.confirmAndExecuteCash(opened.getSessionId(), TestActors.TELLER));
++
++        assertEquals("CUSTOMER_CONSENT_MISSING", ex.getCode());
++    }
++
++    @Test
++    @DisplayName("P0-4: xác nhận khách hàng phải kèm bằng chứng hợp lệ")
++    void consentWithoutEvidenceIsRejected() throws Exception {
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
++        orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
++
++        assertThrows(OrchestratorException.class, () ->
++            orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "OTP", "  "));
++
++        assertThrows(OrchestratorException.class, () ->
++            orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "TIN_TUONG", "REF-1"));
++    }
++
++    @Test
++    @DisplayName("P0-4: GDV khác không thể gửi hạch toán giao dịch của người kia")
++    void anotherTellerCannotSubmitSomeoneElsesTransaction() throws Exception {
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
++        orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
++        orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "SIGNATURE", "PHIEU-001");
++        orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
++
++        OrchestratorException ex = assertThrows(OrchestratorException.class, () ->
++            orchestrator.execute(opened.getSessionId(), TestActors.OTHER_TELLER));
++
++        assertEquals("TELLER_MISMATCH", ex.getCode());
++    }
++
++    // ---------- P0-5 ----------
++
++    @Test
++    @DisplayName("P0-5: capability không có policy tường minh thì bị từ chối, không phải cho qua")
++    void unknownCapabilityIsDeniedByDefault() {
++        assertNull(policyProvider.getPolicy("capability.khong.ton.tai"));
++    }
++
++    @Test
++    @DisplayName("P0-5: không nới được quyền của capability ghi sổ tài chính lúc runtime")
++    void financialWritePolicyCannotBeWidenedAtRuntime() {
++        assertThrows(IllegalArgumentException.class, () ->
++            policyProvider.updatePolicy("core.transfer.execute",
++                java.util.List.of("business_orchestrator", "dynamic_tool_agent"),
++                java.util.List.of("domestic_transfer", "dynamic_autonomous")));
++    }
++
++    @Test
++    @DisplayName("P0-5: sửa policy trong DB không nới được quyền vượt khai báo trong code")
++    void policyEditCannotExceedToolDeclaration() throws Exception {
++        // fx.rate.lookup khai báo cứng danh sách caller trong code; DB chỉ có thể thu hẹp.
++        var existing = policyProvider.getPolicy("fx.rate.lookup");
++        var original = java.util.List.copyOf(existing.getAllowedCallers());
++        var widened = new java.util.ArrayList<>(original);
++        widened.add("ke_tan_cong_agent");
++        policyProvider.updatePolicy("fx.rate.lookup", widened, existing.getAllowedWorkflows());
++        try {
++            assertThrows(McpServer.McpSecurityException.class, () ->
++                mcpServer.executeDirect("ke_tan_cong_agent", "dynamic_autonomous",
++                    "fx.rate.lookup", Map.of("currency", "USD"), null));
++        } finally {
++            policyProvider.updatePolicy("fx.rate.lookup", original, existing.getAllowedWorkflows());
++        }
++    }
++
++    // ---------- P1-5 ----------
++
++    @Test
++    @DisplayName("P1-5: idempotency key là hàm xác định của nội dung nghiệp vụ")
++    void idempotencyKeyIsDeterministic() throws Exception {
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
++        Session draft = orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
++
++        String first = PostingAuthorizer.deriveIdempotencyKey(draft);
++        String second = PostingAuthorizer.deriveIdempotencyKey(draft);
++
++        assertEquals(first, second);
++        assertTrue(first.startsWith("IDK-"));
++    }
++
++    // ---------- Đường hạnh phúc vẫn phải chạy được ----------
++
++    @Test
++    @DisplayName("Luồng đúng: consent có bằng chứng → GDV duyệt → hạch toán thành công")
++    void happyPathStillWorks() throws Exception {
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
++        orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
++        orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "SIGNATURE", "PHIEU-002");
++        orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
++
++        Session posted = orchestrator.execute(opened.getSessionId(), TestActors.TELLER);
++
++        assertEquals("POSTED", posted.getStatus());
++        assertTrue(posted.getExecution().getCoreReference().startsWith("CD"));
++        assertEquals("GDV001", posted.getApprovals().getTellerRecord().getActorId());
++        assertEquals("SIGNATURE", posted.getApprovals().getCustomerRecord().getEvidenceType());
++
++        // Idempotency: gọi lại trả về đúng bút toán cũ
++        Session repeated = orchestrator.execute(opened.getSessionId(), TestActors.TELLER);
++        assertEquals(posted.getExecution().getCoreReference(), repeated.getExecution().getCoreReference());
++    }
++}
+diff --git a/src/test/java/com/dnse/teller/McpSecurityPolicyTest.java b/src/test/java/com/dnse/teller/McpSecurityPolicyTest.java
+index b7346d1..72921dd 100644
+--- a/src/test/java/com/dnse/teller/McpSecurityPolicyTest.java
++++ b/src/test/java/com/dnse/teller/McpSecurityPolicyTest.java
+@@ -32,7 +32,7 @@ public class McpSecurityPolicyTest {
+     }
+ 
+     @Test
+-    void testDynamicPolicyHotReloadWithoutRestart() throws Exception {
++    void testHotReloadCanNarrowButNeverWiden() throws Exception {
+         String capabilityId = "fx.rate.lookup";
+         String customCaller = "special_auditor_agent_" + UUID.randomUUID().toString().substring(0, 6);
+ 
+@@ -49,24 +49,27 @@ public class McpSecurityPolicyTest {
+ 
+         // 2. Hot-Reload: Admin grants permission to custom caller dynamically
+         McpSecurityPolicy existing = policyProvider.getPolicy(capabilityId);
++        List<String> originalCallers = List.copyOf(existing.getAllowedCallers());
+         List<String> newCallers = new ArrayList<>(existing.getAllowedCallers());
+         newCallers.add(customCaller);
+ 
+         policyProvider.updatePolicy(capabilityId, newCallers, existing.getAllowedWorkflows());
+ 
+-        // 3. Immediately after hot-reload, custom caller is accepted without server restart!
+-        Map<String, Object> result = mcpServer.executeDirect(
+-            customCaller,
+-            "dynamic_autonomous",
+-            capabilityId,
+-            Map.of("currency", "USD"),
+-            null
+-        );
+-
+-        assertNotNull(result);
+-        assertEquals(capabilityId, result.get("capabilityId"));
+-        assertEquals(customCaller, result.get("caller"));
+-        assertNotNull(result.get("result"));
++        // 3. Quyền hiệu lực = GIAO của policy trong DB và khai báo cứng của tool.
++        //    Nới quyền qua API vận hành KHÔNG có tác dụng — đây là hành vi mong muốn (P0-5).
++        assertThrows(McpServer.McpSecurityException.class, () -> mcpServer.executeDirect(
++            customCaller, "dynamic_autonomous", capabilityId, Map.of("currency", "USD"), null));
++
++        // 4. Ngược lại, thu hẹp quyền thì có hiệu lực ngay.
++        List<String> original = List.copyOf(originalCallers);
++        policyProvider.updatePolicy(capabilityId, List.of("nobody"), existing.getAllowedWorkflows());
++        assertThrows(McpServer.McpSecurityException.class, () -> mcpServer.executeDirect(
++            "dynamic_tool_agent", "dynamic_autonomous", capabilityId, Map.of("currency", "USD"), null));
++
++        // 5. Khôi phục để không ảnh hưởng test khác.
++        policyProvider.updatePolicy(capabilityId, original, existing.getAllowedWorkflows());
++        assertNotNull(mcpServer.executeDirect(
++            "dynamic_tool_agent", "dynamic_autonomous", capabilityId, Map.of("currency", "USD"), null));
+     }
+ 
+     @Test
+diff --git a/src/test/java/com/dnse/teller/OrchestratorTest.java b/src/test/java/com/dnse/teller/OrchestratorTest.java
+index 068d856..e568d99 100644
+--- a/src/test/java/com/dnse/teller/OrchestratorTest.java
++++ b/src/test/java/com/dnse/teller/OrchestratorTest.java
+@@ -19,7 +19,7 @@ public class OrchestratorTest {
+ 
+     @Test
+     void testDomesticTransferCompleteFlow() throws Exception {
+-        Session opened = orchestrator.createSession(Map.of());
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+         Session state = orchestrator.processMessage(
+             opened.getSessionId(),
+             "Chuyển 50 triệu cho Nguyễn Văn An tại Vietcombank, số tài khoản 012345678901"
+@@ -39,7 +39,7 @@ public class OrchestratorTest {
+ 
+     @Test
+     void testMissingFieldsInterruptAndResume() throws Exception {
+-        Session opened = orchestrator.createSession(Map.of());
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+         Session waiting = orchestrator.processMessage(opened.getSessionId(), "Tôi muốn chuyển 25 triệu sang Vietcombank");
+ 
+         assertEquals("WAITING_HUMAN_INPUT", waiting.getStatus());
+@@ -55,32 +55,34 @@ public class OrchestratorTest {
+ 
+     @Test
+     void testMakerCheckerApprovalAndCoreExecution() throws Exception {
+-        Session opened = orchestrator.createSession(Map.of());
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+         orchestrator.processMessage(opened.getSessionId(), "Chuyển 50 triệu cho Nguyễn Văn An tại VCB, số tài khoản 012345678901");
+ 
+-        // Teller cannot approve before customer
+-        assertThrows(OrchestratorException.class, () -> orchestrator.approve(opened.getSessionId(), "teller"));
++        // Teller cannot approve before customer consent is recorded
++        assertThrows(OrchestratorException.class,
++            () -> orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER));
+ 
+-        Session cApproved = orchestrator.approve(opened.getSessionId(), "customer");
++        Session cApproved = orchestrator.recordCustomerConsent(
++            opened.getSessionId(), TestActors.TELLER, "OTP", "OTP-884211");
+         assertFalse(cApproved.getControl().isPostingAllowed());
+ 
+-        Session tApproved = orchestrator.approve(opened.getSessionId(), "teller");
++        Session tApproved = orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
+         assertTrue(tApproved.getControl().isPostingAllowed());
+         assertEquals("READY_TO_POST", tApproved.getStatus());
+ 
+-        Session posted = orchestrator.execute(opened.getSessionId());
++        Session posted = orchestrator.execute(opened.getSessionId(), TestActors.TELLER);
+         assertEquals("POSTED", posted.getStatus());
+         assertNotNull(posted.getExecution());
+         assertTrue(posted.getExecution().getCoreReference().startsWith("FT"));
+ 
+         // Idempotency: execute again returns identical reference
+-        Session repeated = orchestrator.execute(opened.getSessionId());
++        Session repeated = orchestrator.execute(opened.getSessionId(), TestActors.TELLER);
+         assertEquals(posted.getExecution().getCoreReference(), repeated.getExecution().getCoreReference());
+     }
+ 
+     @Test
+     void testRiskReviewBlocksPosting() throws Exception {
+-        Session opened = orchestrator.createSession(Map.of());
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+         Session state = orchestrator.processMessage(
+             opened.getSessionId(),
+             "Chuyển 220 triệu cho Trần Thị Lan tại BIDV, số tài khoản 123456789999"
+@@ -89,12 +91,13 @@ public class OrchestratorTest {
+         assertEquals("RISK_REVIEW", state.getStatus());
+         assertEquals("REVIEW", state.getRisk().getDecision());
+         assertFalse(state.getControl().isPostingAllowed());
+-        assertThrows(OrchestratorException.class, () -> orchestrator.approve(opened.getSessionId(), "customer"));
++        assertThrows(OrchestratorException.class,
++            () -> orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "OTP", "OTP-1"));
+     }
+ 
+     @Test
+     void testPolicyAssistance() throws Exception {
+-        Session opened = orchestrator.createSession(Map.of());
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+         Session state = orchestrator.processMessage(opened.getSessionId(), "Quy trình và biểu phí chuyển khoản tại quầy như thế nào?");
+ 
+         assertEquals("ASSISTANCE_READY", state.getStatus());
+@@ -105,7 +108,7 @@ public class OrchestratorTest {
+ 
+     @Test
+     void testCashDepositAutoFillAndConfirm() throws Exception {
+-        Session opened = orchestrator.createSession(Map.of());
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+         Session draft = orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
+ 
+         assertEquals("CASH_DEPOSIT", draft.getIntent().getType());
+@@ -117,16 +120,19 @@ public class OrchestratorTest {
+         assertEquals("Nguyễn Minh Anh", draft.getTransactionDraft().getAccountHolder());
+         assertTrue(draft.getTransactionDraft().getValidation().getValid());
+ 
+-        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId());
++        orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "SIGNATURE", "PHIEU-100");
++        orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
++
++        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId(), TestActors.TELLER);
+         assertEquals("POSTED", posted.getStatus());
+-        assertTrue(posted.getApprovals().isCustomer());
+-        assertTrue(posted.getApprovals().isTeller());
++        assertEquals("GDV001", posted.getApprovals().getTellerRecord().getActorId());
++        assertEquals("GDV001", posted.getApprovals().getCustomerRecord().getRecordedByActorId());
+         assertTrue(posted.getExecution().getCoreReference().startsWith("CD"));
+     }
+ 
+     @Test
+     void testCashWithdrawalAutoFillAndLimitCheck() throws Exception {
+-        Session opened = orchestrator.createSession(Map.of());
++        Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+         Session draft = orchestrator.processMessage(opened.getSessionId(), "rút tiền 50tr từ tài khoản 3456789");
+ 
+         assertEquals("CASH_WITHDRAWAL", draft.getIntent().getType());
+@@ -136,7 +142,10 @@ public class OrchestratorTest {
+         assertEquals("3456789", draft.getTransactionDraft().getAccountNumber());
+         assertEquals(Boolean.TRUE, draft.getTransactionDraft().getLimit().get("sufficientFunds"));
+ 
+-        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId());
++        orchestrator.recordCustomerConsent(opened.getSessionId(), TestActors.TELLER, "SIGNATURE", "PHIEU-101");
++        orchestrator.approve(opened.getSessionId(), "teller", TestActors.TELLER);
++
++        Session posted = orchestrator.confirmAndExecuteCash(opened.getSessionId(), TestActors.TELLER);
+         assertEquals("POSTED", posted.getStatus());
+         assertTrue(posted.getExecution().getCoreReference().startsWith("CW"));
+     }
+diff --git a/src/test/java/com/dnse/teller/SessionControllerTest.java b/src/test/java/com/dnse/teller/SessionControllerTest.java
+index 4d051a3..4551fbd 100644
+--- a/src/test/java/com/dnse/teller/SessionControllerTest.java
++++ b/src/test/java/com/dnse/teller/SessionControllerTest.java
+@@ -17,6 +17,15 @@ public class SessionControllerTest {
+     @Autowired
+     private MockMvc mockMvc;
+ 
++    private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder asTeller(
++            org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
++        return builder
++            .header("X-Actor-Id", "GDV001")
++            .header("X-Actor-Name", "Nguyễn Thị Hà")
++            .header("X-Actor-Role", "TELLER")
++            .header("X-Actor-Branch", "CN-SGD-01");
++    }
++
+     @Test
+     void testHealthEndpoint() throws Exception {
+         mockMvc.perform(get("/api/health"))
+@@ -37,7 +46,7 @@ public class SessionControllerTest {
+     @Test
+     void testSessionLifecycleViaRest() throws Exception {
+         // 1. Create session
+-        String createRes = mockMvc.perform(post("/api/sessions")
++        String createRes = mockMvc.perform(asTeller(post("/api/sessions"))
+                 .contentType(MediaType.APPLICATION_JSON)
+                 .content("{}"))
+             .andExpect(status().isCreated())
+@@ -47,15 +56,27 @@ public class SessionControllerTest {
+         String sessionId = com.jayway.jsonpath.JsonPath.read(createRes, "$.sessionId");
+ 
+         // 2. Post message
+-        mockMvc.perform(post("/api/sessions/" + sessionId + "/messages")
++        mockMvc.perform(asTeller(post("/api/sessions/" + sessionId + "/messages"))
+                 .contentType(MediaType.APPLICATION_JSON)
+                 .content("{\"text\":\"nộp tiền 50tr vào tài khoản 3456789\"}"))
+             .andExpect(status().isOk())
+             .andExpect(jsonPath("$.status").value("DRAFT_READY"))
+             .andExpect(jsonPath("$.transactionDraft.amount").value(50000000));
+ 
+-        // 3. Confirm and execute
+-        mockMvc.perform(post("/api/sessions/" + sessionId + "/confirm-and-execute")
++        // 3. Ghi nhận đồng ý của khách hàng kèm bằng chứng
++        mockMvc.perform(asTeller(post("/api/sessions/" + sessionId + "/consent"))
++                .contentType(MediaType.APPLICATION_JSON)
++                .content("{\"evidenceType\":\"SIGNATURE\",\"evidenceRef\":\"PHIEU-REST-001\"}"))
++            .andExpect(status().isOk());
++
++        // 4. GDV xác nhận
++        mockMvc.perform(asTeller(post("/api/sessions/" + sessionId + "/approvals"))
++                .contentType(MediaType.APPLICATION_JSON)
++                .content("{\"role\":\"teller\"}"))
++            .andExpect(status().isOk());
++
++        // 5. Confirm and execute
++        mockMvc.perform(asTeller(post("/api/sessions/" + sessionId + "/confirm-and-execute"))
+                 .contentType(MediaType.APPLICATION_JSON))
+             .andExpect(status().isOk())
+             .andExpect(jsonPath("$.status").value("POSTED"))
+diff --git a/src/test/java/com/dnse/teller/TestActors.java b/src/test/java/com/dnse/teller/TestActors.java
+new file mode 100644
+index 0000000..b9efa48
+--- /dev/null
++++ b/src/test/java/com/dnse/teller/TestActors.java
+@@ -0,0 +1,25 @@
++package com.dnse.teller;
++
++import com.dnse.teller.security.AuthenticatedActor;
++
++/** Danh tính dùng chung cho test. */
++public final class TestActors {
++
++    public static final AuthenticatedActor TELLER =
++        new AuthenticatedActor("GDV001", "Nguyễn Thị Hà", AuthenticatedActor.Role.TELLER, "CN-SGD-01");
++
++    public static final AuthenticatedActor OTHER_TELLER =
++        new AuthenticatedActor("GDV002", "Trần Văn Bình", AuthenticatedActor.Role.TELLER, "CN-SGD-01");
++
++    public static final AuthenticatedActor SUPERVISOR =
++        new AuthenticatedActor("KSV001", "Lê Minh Tú", AuthenticatedActor.Role.SUPERVISOR, "CN-SGD-01");
++
++    /** Kiểm soát viên trùng userId với GDV — dùng để test vi phạm 4 mắt. */
++    public static final AuthenticatedActor SUPERVISOR_SAME_PERSON =
++        new AuthenticatedActor("GDV001", "Nguyễn Thị Hà", AuthenticatedActor.Role.SUPERVISOR, "CN-SGD-01");
++
++    public static final AuthenticatedActor SECURITY_ADMIN =
++        new AuthenticatedActor("SEC001", "Admin Bảo mật", AuthenticatedActor.Role.SECURITY_ADMIN, null);
++
++    private TestActors() {}
++}
+diff --git a/src/test/resources/application.properties b/src/test/resources/application.properties
+new file mode 100644
+index 0000000..234b7b8
+--- /dev/null
++++ b/src/test/resources/application.properties
+@@ -0,0 +1,16 @@
++server.port=0
++server.address=127.0.0.1
++spring.application.name=bsmart-teller-agent-test
++
++logging.level.com.dnse.teller=INFO
++
++# POC: cho phép lấy danh tính từ header đã được reverse proxy xác thực.
++# Môi trường thật dùng OIDC và cờ này phải là false.
++teller.security.trust-headers=true
++
++deepseek.api.enabled=false
++deepseek.api.base-url=https://api.deepseek.com/v1
++deepseek.api.key=
++deepseek.api.model=deepseek-chat
++deepseek.api.temperature=0.1
++deepseek.api.timeout-seconds=25

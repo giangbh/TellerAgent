@@ -22,7 +22,7 @@ public class McpSecurityPolicyTest {
     void testPoliciesLoadedFromSeedJsonAndDatabase() {
         List<McpSecurityPolicy> policies = policyProvider.getAllPolicies();
         assertNotNull(policies);
-        assertEquals(23, policies.size());
+        assertEquals(24, policies.size());
 
         McpSecurityPolicy profilePolicy = policyProvider.getPolicy("customer.profile.read");
         assertNotNull(profilePolicy);
@@ -32,7 +32,7 @@ public class McpSecurityPolicyTest {
     }
 
     @Test
-    void testDynamicPolicyHotReloadWithoutRestart() throws Exception {
+    void testHotReloadCanNarrowButNeverWiden() throws Exception {
         String capabilityId = "fx.rate.lookup";
         String customCaller = "special_auditor_agent_" + UUID.randomUUID().toString().substring(0, 6);
 
@@ -49,24 +49,27 @@ public class McpSecurityPolicyTest {
 
         // 2. Hot-Reload: Admin grants permission to custom caller dynamically
         McpSecurityPolicy existing = policyProvider.getPolicy(capabilityId);
+        List<String> originalCallers = List.copyOf(existing.getAllowedCallers());
         List<String> newCallers = new ArrayList<>(existing.getAllowedCallers());
         newCallers.add(customCaller);
 
         policyProvider.updatePolicy(capabilityId, newCallers, existing.getAllowedWorkflows());
 
-        // 3. Immediately after hot-reload, custom caller is accepted without server restart!
-        Map<String, Object> result = mcpServer.executeDirect(
-            customCaller,
-            "dynamic_autonomous",
-            capabilityId,
-            Map.of("currency", "USD"),
-            null
-        );
+        // 3. Quyền hiệu lực = GIAO của policy trong DB và khai báo cứng của tool.
+        //    Nới quyền qua API vận hành KHÔNG có tác dụng — đây là hành vi mong muốn (P0-5).
+        assertThrows(McpServer.McpSecurityException.class, () -> mcpServer.executeDirect(
+            customCaller, "dynamic_autonomous", capabilityId, Map.of("currency", "USD"), null));
 
-        assertNotNull(result);
-        assertEquals(capabilityId, result.get("capabilityId"));
-        assertEquals(customCaller, result.get("caller"));
-        assertNotNull(result.get("result"));
+        // 4. Ngược lại, thu hẹp quyền thì có hiệu lực ngay.
+        List<String> original = List.copyOf(originalCallers);
+        policyProvider.updatePolicy(capabilityId, List.of("nobody"), existing.getAllowedWorkflows());
+        assertThrows(McpServer.McpSecurityException.class, () -> mcpServer.executeDirect(
+            "dynamic_tool_agent", "dynamic_autonomous", capabilityId, Map.of("currency", "USD"), null));
+
+        // 5. Khôi phục để không ảnh hưởng test khác.
+        policyProvider.updatePolicy(capabilityId, original, existing.getAllowedWorkflows());
+        assertNotNull(mcpServer.executeDirect(
+            "dynamic_tool_agent", "dynamic_autonomous", capabilityId, Map.of("currency", "USD"), null));
     }
 
     @Test

@@ -2,6 +2,38 @@ import { BootstrapData, Session } from '../types/teller';
 
 const API_BASE = '/api';
 
+/**
+ * P0-3: mọi request phải mang danh tính đã xác thực.
+ *
+ * POC: header do BFF/reverse proxy đặt. Khi chuyển sang OIDC, thay hàm này
+ * bằng việc gắn Bearer token — phần còn lại của frontend không đổi.
+ */
+export type ActorIdentity = {
+  id: string;
+  name: string;
+  role: 'TELLER' | 'SUPERVISOR' | 'SECURITY_ADMIN';
+  branchId?: string;
+};
+
+let currentActor: ActorIdentity | null = null;
+
+export function setCurrentActor(actor: ActorIdentity) {
+  currentActor = actor;
+}
+
+function authHeaders(): Record<string, string> {
+  if (!currentActor) {
+    throw new Error('Chưa đăng nhập: không xác định được danh tính người dùng.');
+  }
+  return {
+    'Content-Type': 'application/json',
+    'X-Actor-Id': currentActor.id,
+    'X-Actor-Name': currentActor.name,
+    'X-Actor-Role': currentActor.role,
+    ...(currentActor.branchId ? { 'X-Actor-Branch': currentActor.branchId } : {}),
+  };
+}
+
 export async function fetchBootstrap(): Promise<BootstrapData> {
   const res = await fetch(`${API_BASE}/bootstrap`);
   if (!res.ok) throw new Error('Không thể tải thông tin khởi động hệ thống.');
@@ -11,7 +43,7 @@ export async function fetchBootstrap(): Promise<BootstrapData> {
 export async function createSession(params?: Record<string, unknown>): Promise<Session> {
   const res = await fetch(`${API_BASE}/sessions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(params || {}),
   });
   if (!res.ok) throw new Error('Không thể khởi tạo phiên làm việc.');
@@ -19,7 +51,7 @@ export async function createSession(params?: Record<string, unknown>): Promise<S
 }
 
 export async function getSession(sessionId: string): Promise<Session> {
-  const res = await fetch(`${API_BASE}/sessions/${sessionId}`);
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('Không thể tải thông tin phiên làm việc.');
   return res.json();
 }
@@ -27,7 +59,7 @@ export async function getSession(sessionId: string): Promise<Session> {
 export async function sendMessage(sessionId: string, text: string): Promise<Session> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/messages`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ text }),
   });
   const data = await res.json();
@@ -37,15 +69,36 @@ export async function sendMessage(sessionId: string, text: string): Promise<Sess
   return data;
 }
 
-export async function approveSession(sessionId: string, actor: 'customer' | 'teller' | 'supervisor'): Promise<Session> {
+export async function approveSession(sessionId: string, role: 'teller' | 'supervisor'): Promise<Session> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/approvals`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ actor }),
+    headers: authHeaders(),
+    body: JSON.stringify({ role }),
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.error?.message || `Lỗi khi ${actor} phê duyệt.`);
+    throw new Error(data?.error?.message || `Lỗi khi ${role} phê duyệt.`);
+  }
+  return data;
+}
+
+/**
+ * P0-4: xác nhận của khách hàng là một hành động riêng, bắt buộc kèm bằng chứng.
+ * Không còn cách nào để hệ thống tự đánh dấu "khách hàng đã đồng ý".
+ */
+export async function recordCustomerConsent(
+  sessionId: string,
+  evidenceType: 'OTP' | 'SIGNATURE' | 'DOCUMENT' | 'BIOMETRIC',
+  evidenceRef: string,
+): Promise<Session> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/consent`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ evidenceType, evidenceRef }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message || 'Lỗi khi ghi nhận xác nhận của khách hàng.');
   }
   return data;
 }
@@ -53,7 +106,7 @@ export async function approveSession(sessionId: string, actor: 'customer' | 'tel
 export async function executeSession(sessionId: string): Promise<Session> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -65,7 +118,7 @@ export async function executeSession(sessionId: string): Promise<Session> {
 export async function confirmAndExecuteCash(sessionId: string): Promise<Session> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/confirm-and-execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
   });
   const data = await res.json();
   if (!res.ok) {

@@ -21,6 +21,13 @@ export const App: React.FC = () => {
     const init = async () => {
       try {
         setLoading(true);
+        // P0-3: POC — danh tính lấy từ phiên đăng nhập. Thay bằng OIDC ở môi trường thật.
+        api.setCurrentActor({
+          id: 'GDV001',
+          name: 'Nguyễn Thị Hà',
+          role: 'TELLER',
+          branchId: 'CN-SGD-01',
+        });
         const boot = await api.fetchBootstrap();
         setBootstrap(boot);
         const sess = await api.createSession();
@@ -66,7 +73,19 @@ export const App: React.FC = () => {
     try {
       setLoading(true);
       setErrorMsg(null);
-      const updated = await api.approveSession(session.sessionId, actor);
+
+      let updated;
+      if (actor === 'customer') {
+        // P0-4: xác nhận của khách hàng phải có bằng chứng thật, GDV nhập vào.
+        const ref = window.prompt('Nhập mã bằng chứng khách hàng đã đồng ý (mã OTP / số phiếu có chữ ký):');
+        if (!ref || !ref.trim()) {
+          setErrorMsg('Chưa nhập bằng chứng xác nhận của khách hàng.');
+          return;
+        }
+        updated = await api.recordCustomerConsent(session.sessionId, 'SIGNATURE', ref.trim());
+      } else {
+        updated = await api.approveSession(session.sessionId, actor);
+      }
       setSession(updated);
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : `Lỗi khi ${actor} phê duyệt.`);

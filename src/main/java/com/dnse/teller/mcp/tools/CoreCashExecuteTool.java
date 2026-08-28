@@ -2,6 +2,8 @@ package com.dnse.teller.mcp.tools;
 
 import com.dnse.teller.gateway.InternalApiGateway;
 import com.dnse.teller.mcp.McpTool;
+import com.dnse.teller.mcp.ToolCallContext;
+import com.dnse.teller.security.AuthorizationException;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -52,8 +54,18 @@ public class CoreCashExecuteTool implements McpTool {
     }
 
     @Override
-    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) throws Exception {
-        String workflow = args != null && "CASH_WITHDRAWAL".equals(args.get("transactionType")) ? "cash_withdrawal" : "cash_deposit";
-        return gateway.dispatchCorePosting("business_orchestrator", workflow, getId(), args, idempotencyKey);
+    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey) {
+        throw new AuthorizationException(
+                "core.cash.execute chỉ chạy được với PostingAuthorization hợp lệ.",
+                "POSTING_AUTHORIZATION_MISSING", 403);
+    }
+
+    @Override
+    public Map<String, Object> execute(Map<String, Object> args, String idempotencyKey, ToolCallContext context) throws Exception {
+        if (context == null || !context.hasPostingAuthorization()) {
+            throw new AuthorizationException(
+                    "core.cash.execute yêu cầu PostingAuthorization.", "POSTING_AUTHORIZATION_MISSING", 403);
+        }
+        return gateway.dispatchCorePosting(context.postingAuthorization(), getId(), args);
     }
 }
