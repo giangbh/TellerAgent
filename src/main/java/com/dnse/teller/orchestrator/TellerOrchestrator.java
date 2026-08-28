@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class TellerOrchestrator {
@@ -36,6 +37,11 @@ public class TellerOrchestrator {
     private final PostingAuthorizer postingAuthorizer;
     private final InternalApiGateway internalApiGateway;
     private final Map<String, Session> sessionCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ReentrantLock> sessionLocks = new ConcurrentHashMap<>();
+
+    private ReentrantLock getSessionLock(String sessionId) {
+        return sessionLocks.computeIfAbsent(sessionId, k -> new ReentrantLock());
+    }
 
     private static final Set<String> ACCEPTED_CONSENT_EVIDENCE =
         Set.of("OTP", "SIGNATURE", "DOCUMENT", "BIOMETRIC");
@@ -109,19 +115,22 @@ public class TellerOrchestrator {
         return findSession(sessionId);
     }
 
-    public synchronized Session processMessage(String sessionId, String text) throws Exception {
-        Session session = findSession(sessionId);
-        if (text == null || text.trim().isEmpty()) {
-            throw new OrchestratorException("Nội dung yêu cầu không được để trống.", "EMPTY_MESSAGE", 400);
-        }
-        if ("POSTED".equals(session.getStatus())) {
-            throw new OrchestratorException("Giao dịch đã được posting. Hãy mở phiên mới.", "SESSION_ALREADY_POSTED", 400);
-        }
+    public Session processMessage(String sessionId, String text) throws Exception {
+        ReentrantLock lock = getSessionLock(sessionId);
+        lock.lock();
+        try {
+            Session session = findSession(sessionId);
+            if (text == null || text.trim().isEmpty()) {
+                throw new OrchestratorException("Nội dung yêu cầu không được để trống.", "EMPTY_MESSAGE", 400);
+            }
+            if ("POSTED".equals(session.getStatus())) {
+                throw new OrchestratorException("Giao dịch đã được posting. Hãy mở phiên mới.", "SESSION_ALREADY_POSTED", 400);
+            }
 
-        long startTime = System.currentTimeMillis();
-        TraceContext traceContext = tracer.startTrace(sessionId, "process_message");
-        String currentTraceId = traceContext.getTraceId();
-        session.getMessages().add(new ChatMessage("user", text.trim(), Instant.now().toString()));
+            long startTime = System.currentTimeMillis();
+            TraceContext traceContext = tracer.startTrace(sessionId, "process_message");
+            String currentTraceId = traceContext.getTraceId();
+            session.getMessages().add(new ChatMessage("user", text.trim(), Instant.now().toString()));
         addEvent(session, "INPUT", "Teller cung cấp yêu cầu", text.trim());
 
         // Span 1: Intent Detection
@@ -276,7 +285,10 @@ public class TellerOrchestrator {
         evaluateControl(session);
         addEvent(session, "RESULT", "Hoàn thành bản nháp", session.getStatus() + " · không có posting tự động.");
         return save(session);
+    } finally {
+        lock.unlock();
     }
+}
 
     /**
      * Tự động chuyển đổi toàn bộ cây OpenTelemetry TraceSpans thật thành Thinking Steps trực quan.
@@ -344,50 +356,56 @@ public class TellerOrchestrator {
      * {"actor":"supervisor"} đều trở thành kiểm soát viên, và không có ràng
      * buộc nào ngăn GDV tự ký mắt thứ hai cho chính mình.
      */
-    public synchronized Session approve(String sessionId, String requestedRole, AuthenticatedActor actor) {
-        Objects.requireNonNull(actor, "actor");
-        Session session = findSession(sessionId);
-        requireApprovable(session);
+    public Session approve(String sessionId, String requestedRole, AuthenticatedActor actor) {
+        ReentrantLock lock = getSessionLock(sessionId);
+        lock.lock();
+        try {
+            Objects.requireNonNull(actor, "actor");
+            Session session = findSession(sessionId);
+            requireApprovable(session);
 
-        String role = requestedRole != null ? requestedRole.trim().toLowerCase() : "";
+            String role = requestedRole != null ? requestedRole.trim().toLowerCase() : "";
 
-        switch (role) {
-            case "teller" -> {
-                actor.requireRole(AuthenticatedActor.Role.TELLER);
-                if (!session.getApprovals().isCustomer()) {
-                    throw new OrchestratorException(
-                        "Khách hàng phải xác nhận trước Teller.", "CUSTOMER_APPROVAL_REQUIRED", 400);
+            switch (role) {
+                case "teller" -> {
+                    actor.requireRole(AuthenticatedActor.Role.TELLER);
+                    if (!session.getApprovals().isCustomer()) {
+                        throw new OrchestratorException(
+                            "Khách hàng phải xác nhận trước Teller.", "CUSTOMER_APPROVAL_REQUIRED", 400);
+                    }
+                    session.getApprovals().recordTeller(actor);
                 }
-                session.getApprovals().recordTeller(actor);
+                case "supervisor" -> {
+                    actor.requireRole(AuthenticatedActor.Role.SUPERVISOR);
+                    if (!supervisorRequired(session)) {
+                        throw new OrchestratorException(
+                            "Giao dịch này không yêu cầu kiểm soát viên.", "SUPERVISOR_NOT_REQUIRED", 400);
+                    }
+                    ApprovalRecord tellerRecord = session.getApprovals().getTellerRecord();
+                    if (tellerRecord != null && actor.userId().equals(tellerRecord.getActorId())) {
+                        throw new OrchestratorException(
+                            "Vi phạm nguyên tắc 4 mắt: kiểm soát viên trùng với GDV lập giao dịch.",
+                            "SEGREGATION_OF_DUTIES_VIOLATION", 403);
+                    }
+                    session.getApprovals().recordSupervisor(actor);
+                }
+                case "customer" -> throw new OrchestratorException(
+                    "Xác nhận của khách hàng phải đi qua /consent kèm bằng chứng.",
+                    "CUSTOMER_CONSENT_REQUIRES_EVIDENCE", 400);
+                default -> throw new OrchestratorException(
+                    "Vai trò phê duyệt không hợp lệ: " + requestedRole, "INVALID_APPROVER", 400);
             }
-            case "supervisor" -> {
-                actor.requireRole(AuthenticatedActor.Role.SUPERVISOR);
-                if (!supervisorRequired(session)) {
-                    throw new OrchestratorException(
-                        "Giao dịch này không yêu cầu kiểm soát viên.", "SUPERVISOR_NOT_REQUIRED", 400);
-                }
-                ApprovalRecord tellerRecord = session.getApprovals().getTellerRecord();
-                if (tellerRecord != null && actor.userId().equals(tellerRecord.getActorId())) {
-                    throw new OrchestratorException(
-                        "Vi phạm nguyên tắc 4 mắt: kiểm soát viên trùng với GDV lập giao dịch.",
-                        "SEGREGATION_OF_DUTIES_VIOLATION", 403);
-                }
-                session.getApprovals().recordSupervisor(actor);
-            }
-            case "customer" -> throw new OrchestratorException(
-                "Xác nhận của khách hàng phải đi qua /consent kèm bằng chứng.",
-                "CUSTOMER_CONSENT_REQUIRES_EVIDENCE", 400);
-            default -> throw new OrchestratorException(
-                "Vai trò phê duyệt không hợp lệ: " + requestedRole, "INVALID_APPROVER", 400);
+
+            workflowEngine.signal("WF-" + sessionId, "Approval_" + role, actor.userId());
+            addEvent(session, "APPROVAL", labelActor(role) + " đã xác nhận",
+                actor.displayName() + " (" + actor.userId() + ")");
+
+            evaluateControl(session);
+            session.setStatus(session.getControl().isPostingAllowed() ? "READY_TO_POST" : "AWAITING_APPROVAL");
+            return save(session);
+        } finally {
+            lock.unlock();
         }
-
-        workflowEngine.signal("WF-" + sessionId, "Approval_" + role, actor.userId());
-        addEvent(session, "APPROVAL", labelActor(role) + " đã xác nhận",
-            actor.displayName() + " (" + actor.userId() + ")");
-
-        evaluateControl(session);
-        session.setStatus(session.getControl().isPostingAllowed() ? "READY_TO_POST" : "AWAITING_APPROVAL");
-        return save(session);
     }
 
     /**
@@ -397,33 +415,39 @@ public class TellerOrchestrator {
      * rồi ghi vào audit trail dòng "Ghi nhận khách hàng đồng ý" — tức hệ thống
      * tự sinh ra sự đồng ý của khách hàng và tự chứng nhận điều đó.
      */
-    public synchronized Session recordCustomerConsent(String sessionId, AuthenticatedActor actor,
-                                                      String evidenceType, String evidenceRef) {
-        Objects.requireNonNull(actor, "actor");
-        actor.requireRole(AuthenticatedActor.Role.TELLER);
+    public Session recordCustomerConsent(String sessionId, AuthenticatedActor actor,
+                                         String evidenceType, String evidenceRef) {
+        ReentrantLock lock = getSessionLock(sessionId);
+        lock.lock();
+        try {
+            Objects.requireNonNull(actor, "actor");
+            actor.requireRole(AuthenticatedActor.Role.TELLER);
 
-        Session session = findSession(sessionId);
-        requireApprovable(session);
+            Session session = findSession(sessionId);
+            requireApprovable(session);
 
-        String type = evidenceType != null ? evidenceType.trim().toUpperCase() : "";
-        if (!ACCEPTED_CONSENT_EVIDENCE.contains(type)) {
-            throw new OrchestratorException(
-                "Loại bằng chứng đồng ý không hợp lệ. Chấp nhận: " + ACCEPTED_CONSENT_EVIDENCE,
-                "CONSENT_EVIDENCE_INVALID", 400);
+            String type = evidenceType != null ? evidenceType.trim().toUpperCase() : "";
+            if (!ACCEPTED_CONSENT_EVIDENCE.contains(type)) {
+                throw new OrchestratorException(
+                    "Loại bằng chứng đồng ý không hợp lệ. Chấp nhận: " + ACCEPTED_CONSENT_EVIDENCE,
+                    "CONSENT_EVIDENCE_INVALID", 400);
+            }
+            if (evidenceRef == null || evidenceRef.trim().isEmpty()) {
+                throw new OrchestratorException(
+                    "Thiếu tham chiếu bằng chứng (mã OTP, số phiếu, mã chứng từ).",
+                    "CONSENT_EVIDENCE_REF_MISSING", 400);
+            }
+
+            session.getApprovals().recordCustomerConsent(actor, type, evidenceRef.trim());
+            addEvent(session, "APPROVAL", "Khách hàng đã xác nhận",
+                "Bằng chứng " + type + " · " + evidenceRef.trim() + " · ghi nhận bởi " + actor.userId());
+
+            evaluateControl(session);
+            session.setStatus(session.getControl().isPostingAllowed() ? "READY_TO_POST" : "AWAITING_APPROVAL");
+            return save(session);
+        } finally {
+            lock.unlock();
         }
-        if (evidenceRef == null || evidenceRef.trim().isEmpty()) {
-            throw new OrchestratorException(
-                "Thiếu tham chiếu bằng chứng (mã OTP, số phiếu, mã chứng từ).",
-                "CONSENT_EVIDENCE_REF_MISSING", 400);
-        }
-
-        session.getApprovals().recordCustomerConsent(actor, type, evidenceRef.trim());
-        addEvent(session, "APPROVAL", "Khách hàng đã xác nhận",
-            "Bằng chứng " + type + " · " + evidenceRef.trim() + " · ghi nhận bởi " + actor.userId());
-
-        evaluateControl(session);
-        session.setStatus(session.getControl().isPostingAllowed() ? "READY_TO_POST" : "AWAITING_APPROVAL");
-        return save(session);
     }
 
     private void requireApprovable(Session session) {
@@ -442,72 +466,78 @@ public class TellerOrchestrator {
      * chứng lại toàn bộ control gate từ dữ liệu ĐÃ PERSIST, và tool tài chính
      * chỉ nhận lệnh qua giấy phép đó.
      */
-    public synchronized Session execute(String sessionId, AuthenticatedActor actor) throws Exception {
-        Objects.requireNonNull(actor, "actor");
-        actor.requireRole(AuthenticatedActor.Role.TELLER);
+    public Session execute(String sessionId, AuthenticatedActor actor) throws Exception {
+        ReentrantLock lock = getSessionLock(sessionId);
+        lock.lock();
+        try {
+            Objects.requireNonNull(actor, "actor");
+            actor.requireRole(AuthenticatedActor.Role.TELLER);
 
-        Session session = findSession(sessionId);
+            Session session = findSession(sessionId);
 
-        if (session.getExecution() != null && "POSTED".equals(session.getExecution().getStatus())) {
-            return cloneSession(session);
+            if (session.getExecution() != null && "POSTED".equals(session.getExecution().getStatus())) {
+                return cloneSession(session);
+            }
+
+            ApprovalRecord tellerRecord = session.getApprovals().getTellerRecord();
+            if (tellerRecord == null || !actor.userId().equals(tellerRecord.getActorId())) {
+                throw new OrchestratorException(
+                    "Chỉ GDV đã xác nhận giao dịch mới được gửi hạch toán.", "TELLER_MISMATCH", 403);
+            }
+
+            evaluateControl(session);
+            if (!session.getControl().isPostingAllowed()) {
+                throw new OrchestratorException(
+                    "Chưa đủ control gate: " + String.join(", ", session.getControl().getMissingGates()),
+                    "CONTROL_GATES_INCOMPLETE", 400);
+            }
+
+            session.setStatus("POSTING_REQUESTED");
+            addEvent(session, "CONTROL", "Yêu cầu cấp giấy phép hạch toán",
+                "Agent không có đường đi trực tiếp tới financial-write tool.");
+            save(session); // persist trước, để authorizer kiểm chứng trên dữ liệu bền vững
+
+            PostingAuthorization authorization = postingAuthorizer.authorize(sessionId);
+            session.setTransactionId(authorization.getIdempotencyKey());
+
+            Map<String, Object> draftArgs = new HashMap<>();
+            TransactionDraft draft = session.getTransactionDraft();
+            if (draft.getAmount() != null) draftArgs.put("amount", draft.getAmount());
+            if (draft.getBeneficiaryAccount() != null) draftArgs.put("beneficiaryAccount", draft.getBeneficiaryAccount());
+            if (draft.getBeneficiaryName() != null) draftArgs.put("beneficiaryName", draft.getBeneficiaryName());
+            if (draft.getBankCode() != null) draftArgs.put("bankCode", draft.getBankCode());
+            if (draft.getSourceAccountRef() != null) draftArgs.put("sourceAccountRef", draft.getSourceAccountRef());
+            if (draft.getAccountNumber() != null) draftArgs.put("accountNumber", draft.getAccountNumber());
+            if (draft.getTransactionType() != null) draftArgs.put("transactionType", draft.getTransactionType());
+
+            Map<String, Object> res = internalApiGateway.dispatchCorePosting(
+                authorization,
+                authorization.getCapabilityId(),
+                draftArgs
+            );
+
+            ExecutionResult exec = new ExecutionResult(
+                (String) res.get("status"),
+                (String) res.get("coreReference"),
+                (String) res.get("postedAt"),
+                res.get("amount") instanceof Number ? ((Number) res.get("amount")).longValue() : null,
+                (String) res.get("transactionType"),
+                true
+            );
+            session.setExecution(exec);
+            session.setStatus(exec.getStatus());
+
+            workflowEngine.completeWorkflow("WF-" + sessionId,
+                Map.of("coreReference", exec.getCoreReference(), "status", exec.getStatus()));
+
+            addEvent(session, "CORE", "Core banking mock phản hồi qua Internal API Gateway",
+                exec.getStatus() + " · " + exec.getCoreReference() + " · GDV " + authorization.getTellerActorId());
+            session.getMessages().add(new ChatMessage("assistant",
+                "Giao dịch mock đã ghi nhận: " + exec.getCoreReference() + ".", Instant.now().toString()));
+            return save(session);
+        } finally {
+            lock.unlock();
         }
-
-        ApprovalRecord tellerRecord = session.getApprovals().getTellerRecord();
-        if (tellerRecord == null || !actor.userId().equals(tellerRecord.getActorId())) {
-            throw new OrchestratorException(
-                "Chỉ GDV đã xác nhận giao dịch mới được gửi hạch toán.", "TELLER_MISMATCH", 403);
-        }
-
-        evaluateControl(session);
-        if (!session.getControl().isPostingAllowed()) {
-            throw new OrchestratorException(
-                "Chưa đủ control gate: " + String.join(", ", session.getControl().getMissingGates()),
-                "CONTROL_GATES_INCOMPLETE", 400);
-        }
-
-        session.setStatus("POSTING_REQUESTED");
-        addEvent(session, "CONTROL", "Yêu cầu cấp giấy phép hạch toán",
-            "Agent không có đường đi trực tiếp tới financial-write tool.");
-        save(session); // persist trước, để authorizer kiểm chứng trên dữ liệu bền vững
-
-        PostingAuthorization authorization = postingAuthorizer.authorize(sessionId);
-        session.setTransactionId(authorization.getIdempotencyKey());
-
-        Map<String, Object> draftArgs = new HashMap<>();
-        TransactionDraft draft = session.getTransactionDraft();
-        if (draft.getAmount() != null) draftArgs.put("amount", draft.getAmount());
-        if (draft.getBeneficiaryAccount() != null) draftArgs.put("beneficiaryAccount", draft.getBeneficiaryAccount());
-        if (draft.getBeneficiaryName() != null) draftArgs.put("beneficiaryName", draft.getBeneficiaryName());
-        if (draft.getBankCode() != null) draftArgs.put("bankCode", draft.getBankCode());
-        if (draft.getSourceAccountRef() != null) draftArgs.put("sourceAccountRef", draft.getSourceAccountRef());
-        if (draft.getAccountNumber() != null) draftArgs.put("accountNumber", draft.getAccountNumber());
-        if (draft.getTransactionType() != null) draftArgs.put("transactionType", draft.getTransactionType());
-
-        Map<String, Object> res = internalApiGateway.dispatchCorePosting(
-            authorization,
-            authorization.getCapabilityId(),
-            draftArgs
-        );
-
-        ExecutionResult exec = new ExecutionResult(
-            (String) res.get("status"),
-            (String) res.get("coreReference"),
-            (String) res.get("postedAt"),
-            res.get("amount") instanceof Number ? ((Number) res.get("amount")).longValue() : null,
-            (String) res.get("transactionType"),
-            true
-        );
-        session.setExecution(exec);
-        session.setStatus(exec.getStatus());
-
-        workflowEngine.completeWorkflow("WF-" + sessionId,
-            Map.of("coreReference", exec.getCoreReference(), "status", exec.getStatus()));
-
-        addEvent(session, "CORE", "Core banking mock phản hồi qua Internal API Gateway",
-            exec.getStatus() + " · " + exec.getCoreReference() + " · GDV " + authorization.getTellerActorId());
-        session.getMessages().add(new ChatMessage("assistant",
-            "Giao dịch mock đã ghi nhận: " + exec.getCoreReference() + ".", Instant.now().toString()));
-        return save(session);
     }
 
     /**
@@ -515,20 +545,26 @@ public class TellerOrchestrator {
      * phê duyệt thay cho khách hàng và GDV nữa — hai bước đó phải đã xảy ra
      * tường minh qua recordCustomerConsent() và approve().
      */
-    public synchronized Session confirmAndExecuteCash(String sessionId, AuthenticatedActor actor) throws Exception {
-        Session session = findSession(sessionId);
-        if (session.getWorkflow() == null || !session.getWorkflow().startsWith("cash_")) {
-            throw new OrchestratorException(
-                "Thao tác này chỉ áp dụng cho màn hình nộp/rút tiền.", "CASH_WORKFLOW_REQUIRED", 400);
+    public Session confirmAndExecuteCash(String sessionId, AuthenticatedActor actor) throws Exception {
+        ReentrantLock lock = getSessionLock(sessionId);
+        lock.lock();
+        try {
+            Session session = findSession(sessionId);
+            if (session.getWorkflow() == null || !session.getWorkflow().startsWith("cash_")) {
+                throw new OrchestratorException(
+                    "Thao tác này chỉ áp dụng cho màn hình nộp/rút tiền.", "CASH_WORKFLOW_REQUIRED", 400);
+            }
+            if (!session.getApprovals().isCustomer()) {
+                throw new OrchestratorException(
+                    "Chưa ghi nhận xác nhận của khách hàng kèm bằng chứng.", "CUSTOMER_CONSENT_MISSING", 400);
+            }
+            if (!session.getApprovals().isTeller()) {
+                throw new OrchestratorException("Chưa có xác nhận của GDV.", "TELLER_APPROVAL_MISSING", 400);
+            }
+            return execute(sessionId, actor);
+        } finally {
+            lock.unlock();
         }
-        if (!session.getApprovals().isCustomer()) {
-            throw new OrchestratorException(
-                "Chưa ghi nhận xác nhận của khách hàng kèm bằng chứng.", "CUSTOMER_CONSENT_MISSING", 400);
-        }
-        if (!session.getApprovals().isTeller()) {
-            throw new OrchestratorException("Chưa có xác nhận của GDV.", "TELLER_APPROVAL_MISSING", 400);
-        }
-        return execute(sessionId, actor);
     }
 
     public BootstrapResponse bootstrap() {

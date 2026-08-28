@@ -149,4 +149,39 @@ public class OrchestratorTest {
         assertEquals("POSTED", posted.getStatus());
         assertTrue(posted.getExecution().getCoreReference().startsWith("CW"));
     }
+
+    @Test
+    void testConcurrentSessionsExecuteInParallelWithoutBlocking() throws Exception {
+        int sessionCount = 8;
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(sessionCount);
+        java.util.concurrent.CountDownLatch startLatch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch doneLatch = new java.util.concurrent.CountDownLatch(sessionCount);
+        java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        for (int i = 0; i < sessionCount; i++) {
+            final int index = i;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    Session opened = orchestrator.createSession(Map.of(), TestActors.TELLER);
+                    Session res = orchestrator.processMessage(opened.getSessionId(), "nộp tiền 50tr vào tài khoản 3456789");
+                    if ("DRAFT_READY".equals(res.getStatus())) {
+                        successCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        // Fire all threads concurrently
+        startLatch.countDown();
+        boolean completed = doneLatch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertTrue(completed, "Tất cả các thread phải hoàn tất trong 10 giây");
+        assertEquals(sessionCount, successCount.get(), "Toàn bộ 8 session song song đều phải hoàn thành DRAFT_READY");
+    }
 }
