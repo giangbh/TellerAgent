@@ -22,7 +22,7 @@ public class McpSecurityPolicyTest {
     void testPoliciesLoadedFromSeedJsonAndDatabase() {
         List<McpSecurityPolicy> policies = policyProvider.getAllPolicies();
         assertNotNull(policies);
-        assertEquals(24, policies.size());
+        assertEquals(22, policies.size());
 
         McpSecurityPolicy profilePolicy = policyProvider.getPolicy("customer.profile.read");
         assertNotNull(profilePolicy);
@@ -73,12 +73,8 @@ public class McpSecurityPolicyTest {
     }
 
     @Test
-    void testFinancialWritePolicyEnforcesIdempotencyAndCaller() {
-        McpSecurityPolicy transferPolicy = policyProvider.getPolicy("core.transfer.execute");
-        assertNotNull(transferPolicy);
-        assertEquals("FINANCIAL_WRITE", transferPolicy.getRiskLevel());
-        assertTrue(transferPolicy.isRequiresIdempotency());
-        assertTrue(transferPolicy.isSideEffect());
-        assertEquals(List.of("business_orchestrator"), transferPolicy.getAllowedCallers());
+    void testCorePostingToolsAreExcludedFromMcp() {
+        assertNull(policyProvider.getPolicy("core.transfer.execute"));
+        assertNull(policyProvider.getPolicy("core.cash.execute"));
     }
 }

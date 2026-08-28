@@ -40,7 +40,7 @@ public class AdversarialControlTest {
     // ---------- P0-1 ----------
 
     @Test
-    @DisplayName("P0-1: không post được core qua endpoint MCP công khai")
+    @DisplayName("P0-1: không có tool hạch toán core trong endpoint MCP công khai")
     void financialWriteIsNotReachableOverHttp() throws Exception {
         String payload = """
             {"jsonrpc":"2.0","id":1,"method":"tools/call",
@@ -51,7 +51,7 @@ public class AdversarialControlTest {
         mockMvc.perform(post("/api/mcp").contentType(MediaType.APPLICATION_JSON).content(payload))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.error").exists())
-            .andExpect(jsonPath("$.error.data.code").value("FINANCIAL_WRITE_NOT_EXPOSED"));
+            .andExpect(jsonPath("$.error.data.code").value("UNKNOWN_TOOL"));
     }
 
     @Test
@@ -70,14 +70,14 @@ public class AdversarialControlTest {
     // ---------- P0-2 ----------
 
     @Test
-    @DisplayName("P0-2: agent tự xưng business_orchestrator vẫn không post được core")
+    @DisplayName("P0-2: agent không thể gọi công cụ ghi sổ tài chính qua MCP Server vì không tồn tại trong MCP")
     void agentCannotPostCoreWithoutAuthorization() {
         McpServer.McpSecurityException ex = assertThrows(McpServer.McpSecurityException.class, () ->
             mcpServer.executeDirect(
                 "business_orchestrator", "domestic_transfer", "core.transfer.execute",
                 Map.of("amount", 1_000_000L, "beneficiaryAccount", "123"), "forged-key"));
 
-        assertEquals("POSTING_AUTHORIZATION_MISSING", ex.getCode());
+        assertEquals("UNKNOWN_CAPABILITY", ex.getCode());
     }
 
     // ---------- P0-3 ----------

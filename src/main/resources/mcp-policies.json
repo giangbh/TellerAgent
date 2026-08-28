@@ -174,21 +174,5 @@
     "requiresIdempotency": false,
     "allowedCallers": ["risk_assistant", "dynamic_tool_agent", "business_orchestrator"],
     "allowedWorkflows": ["cash_deposit", "cash_withdrawal", "dynamic_autonomous"]
-  },
-  {
-    "capabilityId": "core.transfer.execute",
-    "riskLevel": "FINANCIAL_WRITE",
-    "isSideEffect": true,
-    "requiresIdempotency": true,
-    "allowedCallers": ["business_orchestrator"],
-    "allowedWorkflows": ["domestic_transfer"]
-  },
-  {
-    "capabilityId": "core.cash.execute",
-    "riskLevel": "FINANCIAL_WRITE",
-    "isSideEffect": true,
-    "requiresIdempotency": true,
-    "allowedCallers": ["business_orchestrator"],
-    "allowedWorkflows": ["cash_deposit", "cash_withdrawal"]
   }
 ]

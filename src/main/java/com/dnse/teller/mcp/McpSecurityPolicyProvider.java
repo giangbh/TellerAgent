@@ -35,12 +35,14 @@ public class McpSecurityPolicyProvider {
             if (resource.exists()) {
                 try (InputStream is = resource.getInputStream()) {
                     List<McpSecurityPolicy> defaultPolicies = objectMapper.readValue(is, new TypeReference<List<McpSecurityPolicy>>() {});
+                    Set<String> validIds = new HashSet<>();
                     for (McpSecurityPolicy policy : defaultPolicies) {
-                        // Seed một lần: không ghi đè chỉnh sửa đã thực hiện lúc vận hành.
+                        validIds.add(policy.getCapabilityId());
                         if (findPolicyInDb(policy.getCapabilityId()).isEmpty()) {
                             savePolicyToDb(policy);
                         }
                     }
+                    deletePoliciesNotIn(validIds);
                 }
             }
         } catch (Exception e) {
@@ -49,6 +51,17 @@ public class McpSecurityPolicyProvider {
 
         // 2. Load all from SQLite DB into memory Cache
         loadAllFromDb();
+    }
+
+    private void deletePoliciesNotIn(Set<String> validIds) {
+        if (validIds == null || validIds.isEmpty()) return;
+        try {
+            String placeholders = String.join(",", Collections.nCopies(validIds.size(), "?"));
+            String sql = "DELETE FROM mcp_security_policies WHERE capability_id NOT IN (" + placeholders + ")";
+            jdbcTemplate.update(sql, validIds.toArray());
+        } catch (Exception e) {
+            System.err.println("Lỗi dọn dẹp policies cũ: " + e.getMessage());
+        }
     }
 
     /**

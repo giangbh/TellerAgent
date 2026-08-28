@@ -8,14 +8,12 @@ Hệ thống Trợ lý AI Quầy Giao Dịch Ngân Hàng (**Smart Counter AI Cop
 
 1. **Backend & Tầng MCP (Java Spring Boot 3.4+ / Java 21)**:
    - Triển khai đầy đủ chuẩn **Model Context Protocol (JSON-RPC 2.0)**: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`.
-   - **Hệ sinh thái 23 Banking Capabilities chuẩn hóa**:
-     - *CIF & Portfolio:* `customer.profile.read`, `customer.accounts.list`, `customer.accounts.summary`.
-     - *Phân tích Chân dung & Tín dụng:* `customer.persona.analytics`, `customer.credit.score.check`, `recommendation.nbo.products`.
-     - *Sao kê & Tiền gửi:* `statement.transaction.history` (10-30 giao dịch ngẫu nhiên), `savings.product.advisor`.
-     - *Dịch vụ Thẻ & Tiện ích:* `card.service.manage`.
-     - *Tỷ giá & Tra cứu:* `fx.rate.lookup`, `branch.directory.lookup`, `bank.directory.lookup`, `pricing.transfer.fee`, `knowledge.policy.search`.
-     - *Kiểm soát Hạn mức & AML:* `transfer.limit.check`, `cash.limit.check`, `risk.transfer.screen`, `risk.cash.screen`, `transaction.draft.validate`, `cash.draft.validate`, `account.resolve.by_number`.
-     - *Hạch toán Tài chính (Financial Write):* `core.transfer.execute`, `core.cash.execute` (Enforce Idempotency Key & kiểm soát qua Internal API Gateway).
+   - **Hệ sinh thái 22 Banking Capabilities chuẩn hóa (100% Read & Draft Validate, Zero Financial Write in MCP)**:
+     - *Hồ sơ & VOC:* `customer.profile.read`, `customer.persona.analytics`, `customer.interaction.history`, `customer.credit.score.check`, `recommendation.nbo.products`.
+     - *Tài khoản & Thẻ:* `customer.accounts.list`, `customer.accounts.summary`, `statement.transaction.history`, `savings.product.advisor`, `card.service.manage`.
+     - *Tỷ giá & Thị trường:* `fx.rate.lookup`, `branch.directory.lookup`, `bank.directory.lookup`, `pricing.transfer.fee`, `knowledge.policy.search`.
+     - *Kiểm soát & Soạn nháp:* `transfer.limit.check`, `cash.limit.check`, `risk.transfer.screen`, `risk.cash.screen`, `transaction.draft.validate`, `cash.draft.validate`, `account.resolve.by_number`.
+     - *Hạch toán Core Banking Độc lập:* Tách biệt tuyệt đối khỏi Agent/MCP — hạch toán thực hiện trực tiếp qua `InternalApiGateway` với `PostingAuthorization` sau khi hoàn tất kiểm soát 4 mắt.
 
 2. **Hệ Thống Dữ Liệu Mock Động 8 Phân Hệ (Decoupled Domain Services)**:
    - Tách biệt kiến trúc `MockBankingDataService` thành 8 Domain Services chuyên biệt:

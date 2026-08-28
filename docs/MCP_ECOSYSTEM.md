@@ -37,7 +37,10 @@ Dưới đây là danh mục chi tiết 24 công cụ ngân hàng chuẩn hóa �
 19. `transaction.draft.validate` (`transaction_draft_validate`): Soạn thảo và kiểm tra hợp lệ Live Draft lệnh chuyển tiền.
 20. `cash.draft.validate` (`cash_draft_validate`): Soạn thảo và kiểm tra hợp lệ Live Draft lệnh nộp/rút tiền mặt.
 21. `account.resolve.by_number` (`account_resolve_by_number`): Xác thực và đối soát số tài khoản thụ hưởng / trích nợ.
+22. `customer.accounts.summary` (`customer_accounts_summary`): Tổng hợp số dư toàn bộ tài khoản thanh toán và sổ tiết kiệm.
 
-### 1.6. Nhóm Hạch Toán Tài Chính Core (2 Financial Write Tools)
-22. `core.transfer.execute` (`core_transfer_execute`): Hạch toán lệnh chuyển tiền vào Core Banking (Enforce Idempotency Key & Kiểm soát 4 mắt).
-23. `core.cash.execute` (`core_cash_execute`): Hạch toán lệnh nộp/rút tiền mặt vào Core Banking (Enforce Idempotency Key & Kiểm soát 4 mắt).
+---
+
+## 2. Phân Tách Tuyệt Đối Giữa MCP Tools & Hạch Toán Core Banking
+* **Nguyên tắc Zero Financial Write in MCP:** Toàn bộ 22 MCP Tools trên hệ thống **100% là công cụ Trợ lý (Read / Analytical / Draft Validate)**. Agent và LLM tuyệt đối **không có quyền** và **không thể gọi** bất kỳ tool ghi sổ nào vào Core Banking.
+* **Kênh Hạch toán Core Độc lập:** Khi Giao dịch viên và Khách hàng hoàn tất phê duyệt 4 mắt, việc ghi sổ được thực hiện qua **`InternalApiGateway.dispatchCorePosting`** với giấy phép xác thực **`PostingAuthorization`** (do `PostingAuthorizer` cấp dựa trên dữ liệu đã lưu trữ SQLite), hoàn toàn nằm ngoài tầm kiểm soát của LLM và MCP Tool Registry.

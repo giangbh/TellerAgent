@@ -277,11 +277,11 @@
         <rect x="704" y="238" width="32" height="12" rx="2" fill="#0f172a"/>
         <text x="720" y="247" fill="#10b981" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">RBAC</text>
 
-        <!-- ==================== TIER 3: 24 MCP BANKING TOOLS ==================== -->
+        <!-- ==================== TIER 3: 22 MCP BANKING ASSISTIVE TOOLS ==================== -->
         <!-- Zone 3 -->
         <rect x="40" y="356" width="1040" height="216" rx="8" fill="rgba(30, 41, 59, 0.3)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
-        <rect x="56" y="348" width="290" height="16" rx="2" fill="#0f172a"/>
-        <text x="64" y="360" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">24 STANDARDIZED BANKING MCP TOOLS CLUSTERS</text>
+        <rect x="56" y="348" width="310" height="16" rx="2" fill="#0f172a"/>
+        <text x="64" y="360" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">22 STANDARDIZED BANKING MCP TOOLS (READ & DRAFT ONLY)</text>
 
         <!-- Cluster 1: Customer Profile & VOC -->
         <rect x="60" y="376" width="236" height="176" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
@@ -314,28 +314,28 @@
         <text x="576" y="488" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• knowledge.policy.search</text>
         <text x="576" y="528" fill="#10b981" font-size="7.5" font-family="'Geist Mono', monospace">[READ_SAFE · PUBLIC DATA]</text>
 
-        <!-- Cluster 4: Limits, Risk & SAGA Core Writes -->
-        <rect x="816" y="376" width="248" height="176" rx="6" fill="#1e293b" stroke="#f43f5e" stroke-width="1.2"/>
-        <text x="828" y="396" fill="#f43f5e" font-size="10" font-weight="600">Rủi Ro, Draft & Hạch Toán SAGA</text>
-        <text x="828" y="416" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• transfer.limit.check / cash</text>
-        <text x="828" y="434" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• risk.transfer.screen / cash</text>
-        <text x="828" y="452" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• transaction.draft.validate</text>
-        <text x="828" y="470" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• cash.draft.validate</text>
-        <text x="828" y="488" fill="#f43f5e" font-size="8" font-family="'Geist Mono', monospace" font-weight="700">• core.transfer.execute (POST)</text>
-        <text x="828" y="506" fill="#f43f5e" font-size="8" font-family="'Geist Mono', monospace" font-weight="700">• core.cash.execute (POST)</text>
-        <text x="828" y="528" fill="#f43f5e" font-size="7.5" font-family="'Geist Mono', monospace">[4-EYES APPROVAL & IDEMPOTENCY]</text>
+        <!-- Cluster 4: Limits, Risk & Live Draft Validation -->
+        <rect x="816" y="376" width="248" height="176" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.2"/>
+        <text x="828" y="396" fill="#10b981" font-size="10" font-weight="600">Rủi Ro, Hạn Mức & Live Draft</text>
+        <text x="828" y="416" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• transfer.limit.check</text>
+        <text x="828" y="434" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• cash.limit.check</text>
+        <text x="828" y="452" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• risk.transfer.screen</text>
+        <text x="828" y="470" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• risk.cash.screen</text>
+        <text x="828" y="488" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• transaction.draft.validate</text>
+        <text x="828" y="506" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• cash.draft.validate</text>
+        <text x="828" y="528" fill="#10b981" font-size="7.5" font-family="'Geist Mono', monospace">[ASSISTIVE VALIDATION ONLY]</text>
 
         <!-- Dispatch lines from McpServer to Clusters -->
         <path d="M 219,300 V 336 Q 219,344 211,344 H 178 Q 170,344 170,352 V 376" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrow)"/>
         <path d="M 219,300 V 336 Q 219,344 227,344 H 422 Q 430,344 430,352 V 376" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrow)"/>
         <path d="M 219,300 V 336 Q 219,344 227,344 H 674 Q 682,344 682,352 V 376" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <path d="M 219,300 V 336 Q 219,344 227,344 H 932 Q 940,344 940,352 V 376" fill="none" stroke="#f43f5e" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 219,300 V 336 Q 219,344 227,344 H 932 Q 940,344 940,352 V 376" fill="none" stroke="#10b981" stroke-width="1.2" marker-end="url(#arrow)"/>
 
         <!-- Lines Tier 3 -> Tier 4: Nối trực tiếp vào mép trên của Box lớn Tầng 4 -->
         <path d="M 178,552 V 576 Q 178,588 200,588 H 540 Q 560,588 560,594 V 600" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
         <path d="M 430,552 V 576 Q 430,588 450,588 H 540" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3"/>
         <path d="M 682,552 V 576 Q 682,588 660,588 H 580" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3"/>
-        <path d="M 940,552 V 576 Q 940,588 920,588 H 580 Q 560,588 560,594 V 600" fill="none" stroke="#f43f5e" stroke-width="1.4" marker-end="url(#arrow)"/>
+        <path d="M 940,552 V 576 Q 940,588 920,588 H 580 Q 560,588 560,594 V 600" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
         <rect x="500" y="580" width="120" height="14" rx="2" fill="#0f172a"/>
         <text x="560" y="590" fill="#94a3b8" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">INTERNAL GATEWAY I/O</text>
 
@@ -371,16 +371,16 @@
         <text x="140" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">Focal Gateway (McpServer)</text>
 
         <!-- Item 2: Safe Read -->
-        <rect x="320" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
-        <text x="340" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">READ_SAFE (Public / General)</text>
+        <rect x="340" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+        <text x="360" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">READ_SAFE (Public / Market / Directory)</text>
 
         <!-- Item 3: Sensitive Read -->
-        <rect x="520" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
-        <text x="540" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">SENSITIVE_READ (PII / Masked)</text>
+        <rect x="620" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+        <text x="640" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">SENSITIVE_READ (PII / Masked / Statement)</text>
 
-        <!-- Item 4: Financial Write -->
-        <rect x="740" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#f43f5e" stroke-width="1.2"/>
-        <text x="760" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">FINANCIAL_WRITE (Idempotent SAGA)</text>
+        <!-- Item 4: Control Read -->
+        <rect x="880" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2"/>
+        <text x="900" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">CONTROL_READ / DRAFT</text>
       </svg>
     </div>
 
@@ -392,11 +392,11 @@
           <span class="card-dot coral"></span>
           <h3>Cổng Kiểm Soát An Toàn (Zero-Trust)</h3>
         </div>
-        <p>Mọi tool call đều qua <strong>McpServer.java</strong> thực thi 4 cổng kiểm soát:</p>
+        <p>Mọi tool call đều qua <strong>McpServer.java</strong> thực thi các cổng kiểm soát:</p>
         <ul>
           <li><strong>Caller RBAC:</strong> Kiểm tra quyền hạn Agent gọi.</li>
           <li><strong>Workflow Scope:</strong> Chặn gọi ngoài phạm vi phiên.</li>
-          <li><strong>Idempotency Gate:</strong> Chống trừ tiền 2 lần khi hạch toán.</li>
+          <li><strong>Zero Financial Write in MCP:</strong> Agent tuyệt đối không có quyền ghi Core.</li>
           <li><strong>Audit Trail:</strong> Lưu vết 100% tham số & latency.</li>
         </ul>
       </div>
@@ -416,16 +416,16 @@
       </div>
 
       <div class="card">
-        <div class="card-eyebrow">24 DOMAIN TOOLS</div>
+        <div class="card-eyebrow">22 DOMAIN ASSISTIVE TOOLS</div>
         <div class="card-header">
           <span class="card-dot green"></span>
-          <h3>Hệ Sinh Thái 24 Công Cụ Chuẩn Hóa</h3>
+          <h3>Hệ Sinh Thái 22 Công Cụ Trợ Lý</h3>
         </div>
         <p>Phân bổ thành 4 nhóm nghiệp vụ chính:</p>
         <ul>
           <li><strong>Hồ Sơ & VOC:</strong> KYC, Persona 360, Cuộc gọi tổng đài, CIC.</li>
           <li><strong>Tài Khoản & Thẻ:</strong> Sao kê thô, Quản trị thẻ, Cố vấn lãi.</li>
-          <li><strong>Rủi Ro & SAGA:</strong> Sàng lọc AML, Kiểm tra hạn mức, Hạch toán.</li>
+          <li><strong>Rủi Ro & Draft:</strong> Sàng lọc AML, Kiểm tra hạn mức, Soạn nháp.</li>
         </ul>
       </div>
     </div>

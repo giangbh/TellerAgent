@@ -43,7 +43,7 @@ public class McpServerTest {
 
         Map<?, ?> result = (Map<?, ?>) res.getResult();
         List<?> tools = (List<?>) result.get("tools");
-        assertEquals(24, tools.size());
+        assertEquals(22, tools.size());
     }
 
     @Test
@@ -94,7 +94,7 @@ public class McpServerTest {
         assertNotNull(res);
         assertNotNull(res.getError());
         assertEquals(-32001, res.getError().getCode());
-        assertTrue(res.getError().getMessage().contains("không được phơi ra qua endpoint MCP"));
+        assertTrue(res.getError().getMessage().contains("Tool không tồn tại"));
     }
 
     @Test

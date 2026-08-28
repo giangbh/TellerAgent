@@ -1,5 +1,6 @@
 package com.dnse.teller.orchestrator;
 
+import com.dnse.teller.gateway.InternalApiGateway;
 import com.dnse.teller.mcp.McpServer;
 import com.dnse.teller.mcp.McpToolRegistry;
 import com.dnse.teller.mcp.ToolCallContext;
@@ -33,6 +34,7 @@ public class TellerOrchestrator {
     private final WorkflowEngine workflowEngine;
     private final OpenTelemetryTracer tracer;
     private final PostingAuthorizer postingAuthorizer;
+    private final InternalApiGateway internalApiGateway;
     private final Map<String, Session> sessionCache = new ConcurrentHashMap<>();
 
     private static final Set<String> ACCEPTED_CONSENT_EVIDENCE =
@@ -53,7 +55,8 @@ public class TellerOrchestrator {
             WorkflowRepository repository,
             WorkflowEngine workflowEngine,
             OpenTelemetryTracer tracer,
-            PostingAuthorizer postingAuthorizer
+            PostingAuthorizer postingAuthorizer,
+            InternalApiGateway internalApiGateway
     ) {
         this.mcpServer = mcpServer;
         this.toolRegistry = toolRegistry;
@@ -63,6 +66,7 @@ public class TellerOrchestrator {
         this.workflowEngine = workflowEngine;
         this.tracer = tracer;
         this.postingAuthorizer = postingAuthorizer;
+        this.internalApiGateway = internalApiGateway;
     }
 
     public Session createSession(Map<String, Object> input) {
@@ -479,16 +483,12 @@ public class TellerOrchestrator {
         if (draft.getAccountNumber() != null) draftArgs.put("accountNumber", draft.getAccountNumber());
         if (draft.getTransactionType() != null) draftArgs.put("transactionType", draft.getTransactionType());
 
-        Map<String, Object> call = mcpServer.executeDirect(
-            ToolCallContext.forPosting(authorization),
+        Map<String, Object> res = internalApiGateway.dispatchCorePosting(
+            authorization,
             authorization.getCapabilityId(),
             draftArgs
         );
 
-        session.getAgentRuntime().getToolCalls().add(call);
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> res = (Map<String, Object>) call.get("result");
         ExecutionResult exec = new ExecutionResult(
             (String) res.get("status"),
             (String) res.get("coreReference"),
