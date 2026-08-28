@@ -164,19 +164,68 @@ public class DeepSeekClient {
                     stepIdx++;
                 }
 
-                String lowerPrompt = prompt != null ? prompt.toLowerCase() : "";
+                // Phân loại Intent & Workflow chuẩn theo các trường Entity đã trích xuất & Bộ công cụ Tool đã chọn
+                Set<String> calledTools = new HashSet<>();
+                for (JsonNode tc : toolCallsNode) {
+                    calledTools.add(tc.path("function").path("name").asText());
+                }
+
                 String intentType = "DYNAMIC_AUTONOMOUS_TASK";
                 String workflow = "dynamic_autonomous";
 
-                if (lowerPrompt.contains("nộp tiền") || lowerPrompt.matches(".*nộp\\s+\\d.*")) {
-                    intentType = "CASH_DEPOSIT";
-                    workflow = "cash_deposit";
-                } else if (lowerPrompt.contains("rút tiền") || lowerPrompt.matches(".*rút\\s+\\d.*")) {
-                    intentType = "CASH_WITHDRAWAL";
-                    workflow = "cash_withdrawal";
-                } else if (lowerPrompt.contains("chuyển khoản") || lowerPrompt.contains("chuyển tiền") || lowerPrompt.matches(".*chuyển\\s+\\d.*")) {
+                boolean isWithdrawal = "WITHDRAWAL".equalsIgnoreCase(String.valueOf(extractedEntities.get("transactionType")))
+                    || "WITHDRAW".equalsIgnoreCase(String.valueOf(extractedEntities.get("action")))
+                    || isWithdrawalPrompt(prompt);
+
+                // 1. Chuyển khoản: nhận diện khi có số tài khoản thụ hưởng, mã ngân hàng hoặc công cụ chuyển tiền
+                if (extractedEntities.containsKey("beneficiaryAccount")
+                        || extractedEntities.containsKey("bankCode")
+                        || calledTools.contains("transfer_limit_check")
+                        || calledTools.contains("pricing_transfer_fee")
+                        || calledTools.contains("bank_directory_lookup")) {
                     intentType = "DOMESTIC_TRANSFER";
                     workflow = "domestic_transfer";
+                }
+                // 2. Rút tiền mặt: nhận diện qua entity transactionType/action hoặc tool cash_limit_check kết hợp hành động rút
+                else if (isWithdrawal && (calledTools.contains("cash_limit_check") || extractedEntities.containsKey("accountNumber") || extractedEntities.containsKey("amount"))) {
+                    intentType = "CASH_WITHDRAWAL";
+                    workflow = "cash_withdrawal";
+                }
+                // 3. Nộp tiền mặt: nhận diện qua tool cash_limit_check hoặc accountNumber + amount (không phải rút tiền)
+                else if (calledTools.contains("cash_limit_check")
+                        || ("DEPOSIT".equalsIgnoreCase(String.valueOf(extractedEntities.get("transactionType"))))
+                        || (calledTools.contains("account_resolve_by_number") && extractedEntities.containsKey("amount") && !isWithdrawal)) {
+                    intentType = "CASH_DEPOSIT";
+                    workflow = "cash_deposit";
+                }
+                // 4. Các nghiệp vụ tra cứu động khác dựa trên Tool & Entity
+                else if (calledTools.contains("fx_rate_lookup") || extractedEntities.containsKey("currency")) {
+                    intentType = "DYNAMIC_FX_LOOKUP";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("branch_directory_lookup") || extractedEntities.containsKey("city")) {
+                    intentType = "DYNAMIC_BRANCH_LOOKUP";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("statement_transaction_history")) {
+                    intentType = "DYNAMIC_TRANSACTION_HISTORY";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("customer_interaction_history")) {
+                    intentType = "DYNAMIC_INTERACTION_LOOKUP";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("customer_persona_analytics")) {
+                    intentType = "DYNAMIC_PERSONA_LOOKUP";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("savings_product_advisor") || extractedEntities.containsKey("termMonths")) {
+                    intentType = "DYNAMIC_SAVINGS_ADVISE";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("card_service_manage")) {
+                    intentType = "DYNAMIC_CARD_MANAGE";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("customer_credit_score_check")) {
+                    intentType = "DYNAMIC_CREDIT_SCORE_LOOKUP";
+                    workflow = "dynamic_autonomous";
+                } else if (calledTools.contains("customer_accounts_summary")) {
+                    intentType = "DYNAMIC_ACCOUNT_SUMMARY";
+                    workflow = "dynamic_autonomous";
                 }
 
                 Plan plan;
@@ -312,5 +361,11 @@ public class DeepSeekClient {
             System.err.println("Lỗi khi DeepSeek tổng hợp phản hồi nghiệp vụ: " + e.getMessage());
         }
         return Optional.empty();
+    }
+
+    private boolean isWithdrawalPrompt(String prompt) {
+        if (prompt == null) return false;
+        String lower = prompt.toLowerCase();
+        return lower.contains("rút") || lower.contains("withdraw") || lower.contains("chi tiền") || lower.contains("rút tiền");
     }
 }

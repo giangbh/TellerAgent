@@ -57,13 +57,15 @@ public class RuleBasedReasoningEngine {
         String extractedCif = parseCif(text);
         Long extractedAmount = parseAmount(text);
         Integer extractedTerm = parseTerm(text);
+        String extractedBank = parseBank(text);
+        String extractedAccount = parseAccount(text);
+        String extractedName = parseName(text);
 
         // 0. Dynamic Customer Interaction History & VOC / Incident Log
         if (INTERACTION_PAT.matcher(lower).find()) {
             Map<String, Object> entities = new LinkedHashMap<>();
             if (extractedCif != null) entities.put("customerRef", extractedCif);
-            String account = parseAccount(text);
-            if (account != null) entities.put("accountNumber", account);
+            if (extractedAccount != null) entities.put("accountNumber", extractedAccount);
             Intent interactionIntent = new Intent("DYNAMIC_INTERACTION_LOOKUP", "dynamic_autonomous", 0.98, entities);
             interactionIntent.setQuery(text);
             return interactionIntent;
@@ -79,7 +81,7 @@ public class RuleBasedReasoningEngine {
         }
 
         // 2. Dynamic Savings Yield & Product Advisor
-        if (SAVINGS_ADVISE_PAT.matcher(lower).find()) {
+        if (SAVINGS_ADVISE_PAT.matcher(lower).find() || (extractedTerm != null && (lower.contains("gửi") || lower.contains("tiết kiệm")))) {
             Map<String, Object> entities = new LinkedHashMap<>();
             if (extractedAmount != null) entities.put("amount", extractedAmount);
             if (extractedTerm != null) entities.put("termMonths", extractedTerm);
@@ -118,8 +120,7 @@ public class RuleBasedReasoningEngine {
         // 6. Dynamic Statement & Transaction History
         if (HISTORY_PAT.matcher(lower).find()) {
             Map<String, Object> entities = new LinkedHashMap<>();
-            String account = parseAccount(text);
-            if (account != null) entities.put("accountNumber", account);
+            if (extractedAccount != null) entities.put("accountNumber", extractedAccount);
             if (extractedCif != null) entities.put("customerRef", extractedCif);
             Intent historyIntent = new Intent("DYNAMIC_TRANSACTION_HISTORY", "dynamic_autonomous", 0.98, entities);
             historyIntent.setQuery(text);
@@ -172,20 +173,22 @@ public class RuleBasedReasoningEngine {
             return policyIntent;
         }
 
-        // 11. Cash Deposit & Withdrawal
-        if (CASH_DEPOSIT_PAT.matcher(lower).find()) {
-            return new Intent("CASH_DEPOSIT", "cash_deposit", 0.97, extractCashEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
+        // 11. Chuyển khoản (Domestic Transfer): Nhận diện khi có mã ngân hàng, từ khóa chuyển tiền hoặc thông tin thụ hưởng
+        if (TRANSFER_PAT.matcher(lower).find() || extractedBank != null || (extractedName != null && extractedAccount != null)) {
+            return new Intent("DOMESTIC_TRANSFER", "domestic_transfer", 0.96, extractTransferEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
-        if (CASH_WITHDRAWAL_PAT.matcher(lower).find()) {
+
+        // 12. Rút tiền mặt (Cash Withdrawal): Nhận diện qua từ khóa rút tiền/chi tiền
+        if (CASH_WITHDRAWAL_PAT.matcher(lower).find() || lower.contains("chi tiền") || lower.contains("rút")) {
             return new Intent("CASH_WITHDRAWAL", "cash_withdrawal", 0.97, extractCashEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
 
-        // 12. Domestic Transfer
-        if (TRANSFER_PAT.matcher(lower).find()) {
-            return new Intent("DOMESTIC_TRANSFER", "domestic_transfer", 0.94, extractTransferEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
+        // 13. Nộp tiền mặt (Cash Deposit): Nhận diện qua từ khóa nộp tiền/gửi tiền hoặc có số tài khoản + số tiền
+        if (CASH_DEPOSIT_PAT.matcher(lower).find() || lower.contains("gửi tiền") || (extractedAccount != null && extractedAmount != null)) {
+            return new Intent("CASH_DEPOSIT", "cash_deposit", 0.97, extractCashEntities(text, currentIntent != null ? currentIntent.getEntities() : Map.of()));
         }
 
-        // 13. Resume previous state if present
+        // 14. Resume previous state if present
         if (currentIntent != null && "DOMESTIC_TRANSFER".equals(currentIntent.getType())) {
             Intent updated = new Intent(currentIntent.getType(), currentIntent.getWorkflow(), 0.99, extractTransferEntities(text, currentIntent.getEntities()));
             updated.setQuery(currentIntent.getQuery());
@@ -197,7 +200,7 @@ public class RuleBasedReasoningEngine {
             return updated;
         }
 
-        // 14. Default Dynamic Tool Discovery for any unclassified prompt
+        // 15. Default Dynamic Tool Discovery for any unclassified prompt
         List<String> discoveredTools = discoverTools(text);
         Map<String, Object> entities = extractTransferEntities(text, Map.of());
         if (extractedCif != null) entities.put("customerRef", extractedCif);
