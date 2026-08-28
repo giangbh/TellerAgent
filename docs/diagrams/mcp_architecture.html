@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kiến Trúc Model Context Protocol (MCP) · B.Smart Teller Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #0f172a;
+      --paper-card: #1e293b;
+      --paper-border: rgba(148, 163, 184, 0.15);
+      --ink: #f8fafc;
+      --ink-muted: #94a3b8;
+      --accent: #f97316;
+      --accent-tint: rgba(249, 115, 22, 0.12);
+      --link: #38bdf8;
+      --emerald: #10b981;
+      --purple: #c084fc;
+      --rose: #f43f5e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--paper);
+      color: var(--ink);
+      font-family: 'Geist', -apple-system, sans-serif;
+      padding: 2.5rem 1.5rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 1240px;
+      width: 100%;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--paper-border);
+      padding-bottom: 1.5rem;
+    }
+
+    .eyebrow {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 2.5rem;
+      font-weight: 400;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+
+    p.subtitle {
+      font-size: 1rem;
+      color: var(--ink-muted);
+      margin-top: 0.5rem;
+      max-width: 800px;
+    }
+
+    .diagram-wrapper {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid var(--paper-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(8px);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-width: 1080px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      background: var(--paper-card);
+      border: 1px solid var(--paper-border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .card-eyebrow {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .card-dot.coral { background: var(--accent); }
+    .card-dot.blue { background: var(--link); }
+    .card-dot.green { background: var(--emerald); }
+
+    .card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .card p, .card li {
+      font-size: 0.875rem;
+      color: var(--ink-muted);
+      line-height: 1.5;
+    }
+
+    .card ul {
+      list-style: none;
+      margin-top: 0.5rem;
+    }
+
+    .card li {
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .card li::before {
+      content: "•";
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--paper-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--ink-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="eyebrow">Enterprise Banking Architecture · MCP Ecosystem</div>
+      <h1>Kiến Trúc Model Context Protocol (MCP)</h1>
+      <p class="subtitle">Mô hình phân tầng bảo mật Zero-Trust, Cổng kiểm soát Policy Enforcement, Đăng ký công cụ tự động và 24 MCP Tools nghiệp vụ ngân hàng.</p>
+    </header>
+
+    <div class="diagram-wrapper">
+      <svg viewBox="0 0 1120 740" role="img" aria-labelledby="mcp-arch-title mcp-arch-desc">
+        <title id="mcp-arch-title">B.Smart MCP Architecture Diagram</title>
+        <desc id="mcp-arch-desc">Kiến trúc phân tầng MCP từ Client, Cognitive LLM, MCP Security Gateway tới 24 Tools ngân hàng và Core Banking Backend.</desc>
+
+        <defs>
+          <!-- Markers -->
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/>
+          </marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f97316"/>
+          </marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#38bdf8"/>
+          </marker>
+          <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+          </marker>
+        </defs>
+
+        <!-- 1. Background Paper -->
+        <rect width="100%" height="100%" fill="#0f172a"/>
+
+        <!-- ==================== TIER 1: CLIENT & COGNITIVE ==================== -->
+        <!-- Zone 1 -->
+        <rect x="40" y="32" width="1040" height="108" rx="8" fill="rgba(30, 41, 59, 0.3)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <rect x="56" y="24" width="220" height="16" rx="2" fill="#0f172a"/>
+        <text x="64" y="36" fill="#38bdf8" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">INGRESS & COGNITIVE REASONING</text>
+
+        <!-- Node 1: Smart Counter UI -->
+        <rect x="64" y="52" width="280" height="68" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
+        <rect x="74" y="60" width="48" height="14" rx="2" fill="rgba(56, 189, 248, 0.15)"/>
+        <text x="98" y="70" fill="#38bdf8" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">CLIENT</text>
+        <text x="204" y="82" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">Smart Counter Hub (React 19)</text>
+        <text x="204" y="102" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Live Draft · MCP Explorer · Trace APM</text>
+
+        <!-- Node 2: Teller Orchestrator -->
+        <rect x="420" y="52" width="280" height="68" rx="6" fill="#1e293b" stroke="#f8fafc" stroke-width="1"/>
+        <rect x="430" y="60" width="56" height="14" rx="2" fill="rgba(248, 250, 252, 0.1)"/>
+        <text x="458" y="70" fill="#f8fafc" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">SERVICE</text>
+        <text x="560" y="82" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">Teller Orchestrator Engine</text>
+        <text x="560" y="102" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">ReAct Planning · State Machine</text>
+
+        <!-- Node 3: DeepSeek AI -->
+        <rect x="776" y="52" width="280" height="68" rx="6" fill="#1e293b" stroke="#c084fc" stroke-width="1.2"/>
+        <rect x="786" y="60" width="60" height="14" rx="2" fill="rgba(192, 132, 252, 0.15)"/>
+        <text x="816" y="70" fill="#c084fc" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">AI CORE</text>
+        <text x="916" y="82" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">DeepSeek AI (Function Calling)</text>
+        <text x="916" y="102" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Tools Manifest Schema · ReAct Reason</text>
+
+        <!-- Connectors Tier 1 -->
+        <path d="M 344,86 H 420" fill="none" stroke="#38bdf8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <path d="M 700,86 H 776" fill="none" stroke="#c084fc" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- ==================== TIER 2: FOCAL MCP GATEWAY & SECURITY ==================== -->
+        <!-- Zone 2 -->
+        <rect x="40" y="172" width="1040" height="152" rx="8" fill="rgba(249, 115, 22, 0.04)" stroke="rgba(249, 115, 22, 0.35)" stroke-width="1.2" stroke-dasharray="6,4"/>
+        <rect x="56" y="164" width="260" height="16" rx="2" fill="#0f172a"/>
+        <text x="64" y="176" fill="#f97316" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">MCP CORE GATEWAY & ZERO-TRUST POLICY</text>
+
+        <!-- Node 4: Focal McpServer Core Gateway -->
+        <rect x="64" y="196" width="310" height="104" rx="6" fill="rgba(249, 115, 22, 0.1)" stroke="#f97316" stroke-width="1.6"/>
+        <rect x="74" y="204" width="80" height="14" rx="2" fill="rgba(249, 115, 22, 0.25)"/>
+        <text x="114" y="214" fill="#f97316" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="700" text-anchor="middle">FOCAL GATEWAY</text>
+        <text x="219" y="234" fill="#ffffff" font-size="13" font-weight="700" text-anchor="middle">MCP Server (McpServer.java)</text>
+        <text x="219" y="254" fill="#f97316" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">executeDirect() · Caller RBAC · Policy Enforcement</text>
+        <text x="219" y="272" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">Audit Logging · Latency Tracing</text>
+
+        <!-- Node 5: McpToolRegistry -->
+        <rect x="420" y="196" width="280" height="104" rx="6" fill="#1e293b" stroke="#f8fafc" stroke-width="1"/>
+        <rect x="430" y="204" width="70" height="14" rx="2" fill="rgba(248, 250, 252, 0.1)"/>
+        <text x="465" y="214" fill="#f8fafc" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">REGISTRY</text>
+        <text x="560" y="234" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">McpToolRegistry</text>
+        <text x="560" y="254" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Auto-Scan @Component (McpTool)</text>
+        <text x="560" y="272" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">JSON Schema Manifest Provider</text>
+
+        <!-- Node 6: McpSecurityPolicyProvider -->
+        <rect x="740" y="196" width="316" height="104" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.2"/>
+        <rect x="750" y="204" width="90" height="14" rx="2" fill="rgba(16, 185, 129, 0.15)"/>
+        <text x="795" y="214" fill="#10b981" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">SECURITY ENGINE</text>
+        <text x="898" y="234" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">Policy Provider & Idempotency</text>
+        <text x="898" y="254" fill="#10b981" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Dynamic RBAC (mcp-policies.json)</text>
+        <text x="898" y="272" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">Financial Idempotency-Key Gate</text>
+
+        <!-- Connectors Tier 1 -> Tier 2 -->
+        <!-- Orchestrator -> McpServer -->
+        <path d="M 560,120 V 158 Q 560,166 552,166 H 227 Q 219,166 219,174 V 196" fill="none" stroke="#f97316" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="360" y="156" width="70" height="14" rx="2" fill="#0f172a"/>
+        <text x="395" y="166" fill="#f97316" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">EXEC_TOOL</text>
+
+        <!-- McpServer <-> McpToolRegistry -->
+        <path d="M 374,248 H 420" fill="none" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+        
+        <!-- McpServer <-> McpSecurityPolicyProvider -->
+        <path d="M 700,248 H 740" fill="none" stroke="#10b981" stroke-width="1.2" marker-end="url(#arrow-green)"/>
+        <rect x="704" y="238" width="32" height="12" rx="2" fill="#0f172a"/>
+        <text x="720" y="247" fill="#10b981" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">RBAC</text>
+
+        <!-- ==================== TIER 3: 24 MCP BANKING TOOLS ==================== -->
+        <!-- Zone 3 -->
+        <rect x="40" y="356" width="1040" height="216" rx="8" fill="rgba(30, 41, 59, 0.3)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <rect x="56" y="348" width="290" height="16" rx="2" fill="#0f172a"/>
+        <text x="64" y="360" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">24 STANDARDIZED BANKING MCP TOOLS CLUSTERS</text>
+
+        <!-- Cluster 1: Customer Profile & VOC -->
+        <rect x="60" y="376" width="236" height="176" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+        <text x="72" y="396" fill="#38bdf8" font-size="10" font-weight="600">Hồ Sơ & Lịch Sử Tương Tác</text>
+        <text x="72" y="416" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• customer.profile.read</text>
+        <text x="72" y="434" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• customer.persona.analytics</text>
+        <text x="72" y="452" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• customer.interaction.history (NEW)</text>
+        <text x="72" y="470" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• customer.credit.score.check</text>
+        <text x="72" y="488" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• recommendation.nbo.products</text>
+        <text x="72" y="506" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• customer.accounts.summary</text>
+        <text x="72" y="528" fill="#10b981" font-size="7.5" font-family="'Geist Mono', monospace">[SENSITIVE_READ · MASKED]</text>
+
+        <!-- Cluster 2: Accounts, Statements & Cards -->
+        <rect x="312" y="376" width="236" height="176" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1"/>
+        <text x="324" y="396" fill="#f8fafc" font-size="10" font-weight="600">Tài Khoản, Sao Kê & Thẻ</text>
+        <text x="324" y="416" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• customer.accounts.list</text>
+        <text x="324" y="434" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• statement.transaction.history</text>
+        <text x="324" y="452" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• savings.product.advisor</text>
+        <text x="324" y="470" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• card.service.manage</text>
+        <text x="324" y="488" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• account.resolve.by_number</text>
+        <text x="324" y="528" fill="#10b981" font-size="7.5" font-family="'Geist Mono', monospace">[RAW DATA STATEMENTS & YIELD]</text>
+
+        <!-- Cluster 3: Market, Rates & Policies -->
+        <rect x="564" y="376" width="236" height="176" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1"/>
+        <text x="576" y="396" fill="#f8fafc" font-size="10" font-weight="600">Thị Trường & Quy Trình</text>
+        <text x="576" y="416" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• fx.rate.lookup</text>
+        <text x="576" y="434" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• branch.directory.lookup</text>
+        <text x="576" y="452" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• bank.directory.lookup</text>
+        <text x="576" y="470" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• pricing.transfer.fee</text>
+        <text x="576" y="488" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• knowledge.policy.search</text>
+        <text x="576" y="528" fill="#10b981" font-size="7.5" font-family="'Geist Mono', monospace">[READ_SAFE · PUBLIC DATA]</text>
+
+        <!-- Cluster 4: Limits, Risk & SAGA Core Writes -->
+        <rect x="816" y="376" width="248" height="176" rx="6" fill="#1e293b" stroke="#f43f5e" stroke-width="1.2"/>
+        <text x="828" y="396" fill="#f43f5e" font-size="10" font-weight="600">Rủi Ro, Draft & Hạch Toán SAGA</text>
+        <text x="828" y="416" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• transfer.limit.check / cash</text>
+        <text x="828" y="434" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• risk.transfer.screen / cash</text>
+        <text x="828" y="452" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• transaction.draft.validate</text>
+        <text x="828" y="470" fill="#f8fafc" font-size="8" font-family="'Geist Mono', monospace">• cash.draft.validate</text>
+        <text x="828" y="488" fill="#f43f5e" font-size="8" font-family="'Geist Mono', monospace" font-weight="700">• core.transfer.execute (POST)</text>
+        <text x="828" y="506" fill="#f43f5e" font-size="8" font-family="'Geist Mono', monospace" font-weight="700">• core.cash.execute (POST)</text>
+        <text x="828" y="528" fill="#f43f5e" font-size="7.5" font-family="'Geist Mono', monospace">[4-EYES APPROVAL & IDEMPOTENCY]</text>
+
+        <!-- Dispatch lines from McpServer to Clusters -->
+        <path d="M 219,300 V 336 Q 219,344 211,344 H 178 Q 170,344 170,352 V 376" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 219,300 V 336 Q 219,344 227,344 H 422 Q 430,344 430,352 V 376" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 219,300 V 336 Q 219,344 227,344 H 674 Q 682,344 682,352 V 376" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 219,300 V 336 Q 219,344 227,344 H 932 Q 940,344 940,352 V 376" fill="none" stroke="#f43f5e" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- ==================== TIER 4: BACKEND CORE & PERSISTENCE ==================== -->
+        <rect x="40" y="600" width="1040" height="64" rx="8" fill="rgba(30, 41, 59, 0.4)" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1"/>
+        <rect x="56" y="592" width="220" height="16" rx="2" fill="#0f172a"/>
+        <text x="64" y="604" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.1em">BANKING CORE & INFRASTRUCTURE</text>
+
+        <text x="180" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">Core Banking (T24 / Mock Facade)</text>
+        <text x="440" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">NAPAS 24/7 Switch Gateway</text>
+        <text x="700" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">CIC Credit & AML Blacklist</text>
+        <text x="940" y="638" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">SQLite / OpenTelemetry DB</text>
+
+        <!-- Lines Tier 3 -> Tier 4 -->
+        <path d="M 178,552 V 600" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <path d="M 430,552 V 600" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <path d="M 682,552 V 600" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <path d="M 940,552 V 600" fill="none" stroke="#f43f5e" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- ==================== LEGEND STRIP ==================== -->
+        <line x1="40" y1="692" x2="1080" y2="692" stroke="rgba(148, 163, 184, 0.2)" stroke-width="0.8"/>
+        <text x="40" y="718" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+        <!-- Item 1: Focal -->
+        <rect x="120" y="708" width="12" height="12" rx="2" fill="rgba(249, 115, 22, 0.2)" stroke="#f97316" stroke-width="1.2"/>
+        <text x="140" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">Focal Gateway (McpServer)</text>
+
+        <!-- Item 2: Safe Read -->
+        <rect x="320" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+        <text x="340" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">READ_SAFE (Public / General)</text>
+
+        <!-- Item 3: Sensitive Read -->
+        <rect x="520" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+        <text x="540" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">SENSITIVE_READ (PII / Masked)</text>
+
+        <!-- Item 4: Financial Write -->
+        <rect x="740" y="708" width="12" height="12" rx="2" fill="#1e293b" stroke="#f43f5e" stroke-width="1.2"/>
+        <text x="760" y="718" fill="#f8fafc" font-size="8.5" font-family="'Geist', sans-serif">FINANCIAL_WRITE (Idempotent SAGA)</text>
+      </svg>
+    </div>
+
+    <!-- Summary Cards Grid -->
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-eyebrow">SECURITY GATEWAY</div>
+        <div class="card-header">
+          <span class="card-dot coral"></span>
+          <h3>Cổng Kiểm Soát An Toàn (Zero-Trust)</h3>
+        </div>
+        <p>Mọi tool call đều qua <strong>McpServer.java</strong> thực thi 4 cổng kiểm soát:</p>
+        <ul>
+          <li><strong>Caller RBAC:</strong> Kiểm tra quyền hạn Agent gọi.</li>
+          <li><strong>Workflow Scope:</strong> Chặn gọi ngoài phạm vi phiên.</li>
+          <li><strong>Idempotency Gate:</strong> Chống trừ tiền 2 lần khi hạch toán.</li>
+          <li><strong>Audit Trail:</strong> Lưu vết 100% tham số & latency.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-eyebrow">DYNAMIC REGISTRY</div>
+        <div class="card-header">
+          <span class="card-dot blue"></span>
+          <h3>Tự Động Đăng Ký & Sinh JSON Schema</h3>
+        </div>
+        <p><strong>McpToolRegistry</strong> quét tự động toàn bộ Spring Beans thực thi <code>McpTool</code>:</p>
+        <ul>
+          <li>Tự động chuyển đổi thành OpenAI Tools Manifest.</li>
+          <li>Hot-reload phân quyền qua UI không cần restart.</li>
+          <li>Hỗ trợ tra cứu Schema tham số trực quan.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-eyebrow">24 DOMAIN TOOLS</div>
+        <div class="card-header">
+          <span class="card-dot green"></span>
+          <h3>Hệ Sinh Thái 24 Công Cụ Chuẩn Hóa</h3>
+        </div>
+        <p>Phân bổ thành 4 nhóm nghiệp vụ chính:</p>
+        <ul>
+          <li><strong>Hồ Sơ & VOC:</strong> KYC, Persona 360, Cuộc gọi tổng đài, CIC.</li>
+          <li><strong>Tài Khoản & Thẻ:</strong> Sao kê thô, Quản trị thẻ, Cố vấn lãi.</li>
+          <li><strong>Rủi Ro & SAGA:</strong> Sàng lọc AML, Kiểm tra hạn mức, Hạch toán.</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <div>B.Smart Smart Counter Hub · AI Teller Copilot</div>
+      <div>Standardized Model Context Protocol (MCP) · Java Spring Boot 3.4</div>
+    </footer>
+  </div>
+
+</body>
+</html>
