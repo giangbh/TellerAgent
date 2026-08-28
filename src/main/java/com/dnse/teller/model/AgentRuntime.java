@@ -2,14 +2,15 @@ package com.dnse.teller.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AgentRuntime {
     private String reasoningMode = "MOCK_STRUCTURED_PLANNER";
     private Plan plan;
-    private List<String> completedSteps = new ArrayList<>();
-    private List<DelegationInfo> delegations = new ArrayList<>();
-    private List<Map<String, Object>> toolCalls = new ArrayList<>();
+    private List<String> completedSteps = new CopyOnWriteArrayList<>();
+    private List<DelegationInfo> delegations = new CopyOnWriteArrayList<>();
+    private List<Map<String, Object>> toolCalls = new CopyOnWriteArrayList<>();
     private Budget budget = new Budget();
 
     public AgentRuntime() {}

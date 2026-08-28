@@ -2,6 +2,7 @@ package com.dnse.teller.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Session {
@@ -18,7 +19,7 @@ public class Session {
     private String workflowVersion;
     private String status = "SESSION_OPEN";
     private Intent intent;
-    private List<ChatMessage> messages = new ArrayList<>();
+    private List<ChatMessage> messages = new CopyOnWriteArrayList<>();
     private Map<String, Object> customerContext = new LinkedHashMap<>();
     private PolicyFinding policyFindings = new PolicyFinding();
     private TransactionDraft transactionDraft = new TransactionDraft();
@@ -27,7 +28,7 @@ public class Session {
     private ControlGate control = new ControlGate();
     private ExecutionResult execution;
     private AgentRuntime agentRuntime = new AgentRuntime();
-    private List<SessionEvent> events = new ArrayList<>();
+    private List<SessionEvent> events = new CopyOnWriteArrayList<>();
 
     public Session() {}
 

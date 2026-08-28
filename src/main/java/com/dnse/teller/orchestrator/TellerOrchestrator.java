@@ -218,21 +218,31 @@ public class TellerOrchestrator {
             return save(session);
         }
 
-        // Evidence Fan-out: run Customer Context Agent & Policy Agent in parallel
+        // Evidence Fan-out: run Customer Context Agent & Policy Agent in parallel (pure read-only execution)
         TraceSpan spanBarrier = tracer.startSpan("evidence_fanout_barrier", null);
+        validateDelegation(session, "customer_context_agent");
+        validateDelegation(session, "policy_agent");
+
         CompletableFuture<AgentResult> customerFuture = CompletableFuture.supplyAsync(() -> {
-            try { return delegate(session, "customer_context_agent", "S1"); }
+            try { return agentSuite.run("customer_context_agent", session); }
             catch (Exception e) { throw new CompletionException(e); }
         });
 
         CompletableFuture<AgentResult> policyFuture = CompletableFuture.supplyAsync(() -> {
-            try { return delegate(session, "policy_agent", "S2"); }
+            try { return agentSuite.run("policy_agent", session); }
             catch (Exception e) { throw new CompletionException(e); }
         });
 
         CompletableFuture.allOf(customerFuture, policyFuture).join();
-        mergePatch(session, customerFuture.get());
-        mergePatch(session, policyFuture.get());
+        AgentResult customerResult = customerFuture.get();
+        AgentResult policyResult = policyFuture.get();
+
+        recordDelegationResult(session, "customer_context_agent", "S1", customerResult);
+        mergePatch(session, customerResult);
+
+        recordDelegationResult(session, "policy_agent", "S2", policyResult);
+        mergePatch(session, policyResult);
+
         tracer.endSpan(spanBarrier);
         addEvent(session, "BARRIER", "Evidence Barrier đã mở", "Customer context và policy evidence đã sẵn sàng.");
 
@@ -584,26 +594,31 @@ public class TellerOrchestrator {
     }
 
     private AgentResult delegate(Session session, String agent, String stepId) throws Exception {
+        validateDelegation(session, agent);
+        AgentResult result = agentSuite.run(agent, session);
+        recordDelegationResult(session, agent, stepId, result);
+        return result;
+    }
+
+    private void validateDelegation(Session session, String agent) {
         if (!"dynamic_autonomous".equals(session.getWorkflow())) {
             List<String> allowed = ALLOWED_DELEGATIONS.getOrDefault(session.getWorkflow(), List.of());
             if (!allowed.contains(agent) && !agent.startsWith("dynamic_tool_agent:")) {
                 throw new OrchestratorException("Không được delegate sang " + agent, "DELEGATION_DENIED", 400);
             }
         }
+    }
 
+    private void recordDelegationResult(Session session, String agent, String stepId, AgentResult result) {
         if (session.getAgentRuntime().getBudget().getDelegationsUsed() >= session.getAgentRuntime().getBudget().getMaxDelegations()) {
             throw new OrchestratorException("Đã vượt ngân sách delegation.", "DELEGATION_BUDGET_EXCEEDED", 400);
         }
 
         session.getAgentRuntime().getBudget().setDelegationsUsed(session.getAgentRuntime().getBudget().getDelegationsUsed() + 1);
         DelegationInfo delegation = new DelegationInfo(stepId, agent, "RUNNING", Instant.now().toString());
-        session.getAgentRuntime().getDelegations().add(delegation);
-        addEvent(session, "DELEGATE", "Orchestrator gọi " + agent, "Bước " + stepId);
-
-        AgentResult result = agentSuite.run(agent, session);
-
         delegation.setStatus("COMPLETED");
         delegation.setCompletedAt(Instant.now().toString());
+        session.getAgentRuntime().getDelegations().add(delegation);
         session.getAgentRuntime().getCompletedSteps().add(stepId);
         session.getAgentRuntime().getToolCalls().addAll(result.getToolCalls());
         session.getAgentRuntime().getBudget().setToolCallsUsed(
@@ -614,10 +629,8 @@ public class TellerOrchestrator {
             throw new OrchestratorException("Đã vượt ngân sách tool call.", "TOOL_BUDGET_EXCEEDED", 400);
         }
 
-        // Record Activity in Durable Workflow Engine
+        addEvent(session, "DELEGATE", "Orchestrator gọi " + agent, "Bước " + stepId);
         workflowEngine.recordActivityExecution("WF-" + session.getSessionId(), agent + "_" + stepId, "COMPLETED", Map.of("toolCallsCount", result.getToolCalls().size()));
-
-        return result;
     }
 
     @SuppressWarnings("unchecked")
