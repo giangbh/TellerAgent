@@ -3,6 +3,8 @@ package com.dnse.teller.workflow;
 import com.dnse.teller.persistence.WorkflowRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -11,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class WorkflowEngine {
+    private static final Logger log = LoggerFactory.getLogger(WorkflowEngine.class);
+
     private final WorkflowRepository repository;
     private final ObjectMapper objectMapper;
     private final Map<String, WorkflowExecution> activeWorkflows = new ConcurrentHashMap<>();
@@ -59,7 +63,9 @@ public class WorkflowEngine {
                 if (stateJson != null && !stateJson.isEmpty()) {
                     execution.setState(objectMapper.readValue(stateJson, new TypeReference<Map<String, Object>>() {}));
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("Không thể deserialize state_json cho workflow {}: {}", executionId, e.getMessage());
+            }
 
             activeWorkflows.put(executionId, execution);
             return execution;
@@ -98,7 +104,11 @@ public class WorkflowEngine {
     }
 
     private void recordEvent(String executionId, String eventType, String detail) {
-        repository.recordHistoryEvent(executionId, eventType, detail);
+        try {
+            repository.recordHistoryEvent(executionId, eventType, detail);
+        } catch (Exception e) {
+            log.error("Lỗi ghi nhận lịch sử event sourcing {} cho workflow {}: {}", eventType, executionId, e.getMessage(), e);
+        }
     }
 
     private void checkpoint(WorkflowExecution execution) {
@@ -111,6 +121,16 @@ public class WorkflowEngine {
                 execution.getStatus(),
                 json
             );
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.error("Lỗi nghiêm trọng khi checkpoint workflow {} (Session {}): {}",
+                execution.getExecutionId(), execution.getSessionId(), e.getMessage(), e);
+            throw new WorkflowPersistenceException("Không thể checkpoint trạng thái workflow " + execution.getExecutionId() + ": " + e.getMessage(), e);
+        }
+    }
+
+    public static class WorkflowPersistenceException extends RuntimeException {
+        public WorkflowPersistenceException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 }

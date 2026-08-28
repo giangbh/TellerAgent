@@ -20,6 +20,7 @@ import com.dnse.teller.observability.TraceContext;
 import com.dnse.teller.observability.TraceSpan;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -36,6 +37,7 @@ public class TellerOrchestrator {
     private final OpenTelemetryTracer tracer;
     private final PostingAuthorizer postingAuthorizer;
     private final InternalApiGateway internalApiGateway;
+    private final ObjectMapper objectMapper;
     private final Map<String, Session> sessionCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ReentrantLock> sessionLocks = new ConcurrentHashMap<>();
 
@@ -62,7 +64,8 @@ public class TellerOrchestrator {
             WorkflowEngine workflowEngine,
             OpenTelemetryTracer tracer,
             PostingAuthorizer postingAuthorizer,
-            InternalApiGateway internalApiGateway
+            InternalApiGateway internalApiGateway,
+            ObjectMapper objectMapper
     ) {
         this.mcpServer = mcpServer;
         this.toolRegistry = toolRegistry;
@@ -73,6 +76,7 @@ public class TellerOrchestrator {
         this.tracer = tracer;
         this.postingAuthorizer = postingAuthorizer;
         this.internalApiGateway = internalApiGateway;
+        this.objectMapper = objectMapper;
     }
 
     public Session createSession(Map<String, Object> input) {
@@ -737,7 +741,13 @@ public class TellerOrchestrator {
     }
 
     private Session cloneSession(Session s) {
-        return s;
+        if (s == null) return null;
+        try {
+            String json = objectMapper.writeValueAsString(s);
+            return objectMapper.readValue(json, Session.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi tạo snapshot session: " + e.getMessage(), e);
+        }
     }
 
     public static class OrchestratorException extends RuntimeException {
