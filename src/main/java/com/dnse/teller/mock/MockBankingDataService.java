@@ -33,6 +33,7 @@ public class MockBankingDataService {
     private final MockSavingsAdvisorService savingsAdvisorService;
     private final MockCardService cardService;
     private final MockMarketDirectoryService marketDirectoryService;
+    private final MockCustomerInteractionService interactionService;
 
     public MockBankingDataService(
             JdbcTemplate jdbcTemplate,
@@ -44,7 +45,8 @@ public class MockBankingDataService {
             MockNextBestOfferService nextBestOfferService,
             MockSavingsAdvisorService savingsAdvisorService,
             MockCardService cardService,
-            MockMarketDirectoryService marketDirectoryService
+            MockMarketDirectoryService marketDirectoryService,
+            MockCustomerInteractionService interactionService
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.customerProfileService = customerProfileService;
@@ -56,6 +58,7 @@ public class MockBankingDataService {
         this.savingsAdvisorService = savingsAdvisorService;
         this.cardService = cardService;
         this.marketDirectoryService = marketDirectoryService;
+        this.interactionService = interactionService;
     }
 
     @PostConstruct
@@ -155,6 +158,10 @@ public class MockBankingDataService {
         return marketDirectoryService.lookupBranch(query);
     }
 
+    public Map<String, Object> getCustomerInteractionHistory(String customerRef) {
+        return interactionService.getCustomerInteractionHistory(customerRef);
+    }
+
     // Getters for specific specialized domain services
     public MockCustomerProfileService getCustomerProfileService() { return customerProfileService; }
     public MockAccountService getAccountService() { return accountService; }
@@ -165,4 +172,5 @@ public class MockBankingDataService {
     public MockSavingsAdvisorService getSavingsAdvisorService() { return savingsAdvisorService; }
     public MockCardService getCardService() { return cardService; }
     public MockMarketDirectoryService getMarketDirectoryService() { return marketDirectoryService; }
+    public MockCustomerInteractionService getInteractionService() { return interactionService; }
 }

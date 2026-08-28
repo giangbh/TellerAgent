@@ -47,7 +47,7 @@ public class AgentSuite {
         } else if ("customer.accounts.summary".equals(capabilityId) || "customer.profile.read".equals(capabilityId)
                 || "customer.accounts.list".equals(capabilityId) || "customer.persona.analytics".equals(capabilityId)
                 || "customer.credit.score.check".equals(capabilityId) || "recommendation.nbo.products".equals(capabilityId)
-                || "card.service.manage".equals(capabilityId)) {
+                || "card.service.manage".equals(capabilityId) || "customer.interaction.history".equals(capabilityId)) {
             args.put("customerRef", customerRef);
         } else if ("savings.product.advisor".equals(capabilityId)) {
             args.put("amount", entities.getOrDefault("amount", 100_000_000L));

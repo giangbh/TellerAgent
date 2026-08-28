@@ -32,6 +32,14 @@
     "allowedWorkflows": ["dynamic_autonomous", "policy_assistance", "domestic_transfer"]
   },
   {
+    "capabilityId": "customer.interaction.history",
+    "riskLevel": "SENSITIVE_READ",
+    "isSideEffect": false,
+    "requiresIdempotency": false,
+    "allowedCallers": ["dynamic_tool_agent", "customer_context_agent", "business_orchestrator"],
+    "allowedWorkflows": ["dynamic_autonomous", "policy_assistance", "domestic_transfer", "cash_deposit", "cash_withdrawal"]
+  },
+  {
     "capabilityId": "customer.credit.score.check",
     "riskLevel": "SENSITIVE_READ",
     "isSideEffect": false,

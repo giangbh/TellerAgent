@@ -89,16 +89,17 @@ public class DeepSeekClient {
                 1. Nộp tiền mặt vào tài khoản -> chọn tool `account_resolve_by_number` (tham số `accountNumber`), `cash_limit_check` (tham số `amount`).
                 2. Rút tiền mặt từ tài khoản -> chọn tool `account_resolve_by_number` (tham số `accountNumber`), `cash_limit_check` (tham số `amount`).
                 3. Tra cứu/in sao kê, xem lịch sử giao dịch, biến động số dư, dòng tiền thu chi -> BẮT BUỘC chọn tool `statement_transaction_history` (tham số `accountNumber` hoặc `customerRef`).
-                4. Phân tích chân dung khách hàng 360, hành vi chi tiêu, khẩu vị đầu tư -> BẮT BUỘC chọn tool `customer_persona_analytics` (tham số `customerRef`).
-                5. Kiểm tra điểm tín dụng CIC, nợ xấu, hạn mức vay phê duyệt trước -> BẮT BUỘC chọn tool `customer_credit_score_check` (tham số `customerRef`).
-                6. Tư vấn gợi ý ưu đãi, đề xuất sản phẩm phù hợp tiếp theo (Next-Best-Offer/NBO) -> BẮT BUỘC chọn tool `recommendation_nbo_products` (tham số `customerRef`).
-                7. Tính tiền lãi tiết kiệm, tối ưu phương án gửi tiền, so sánh kỳ hạn -> BẮT BUỘC chọn tool `savings_product_advisor` (tham số `amount`, `termMonths`).
-                8. Dịch vụ thẻ (khóa thẻ, đổi PIN, tra cứu hạn mức thẻ) -> BẮT BUỘC chọn tool `card_service_manage` (tham số `customerRef`, `cardAction`).
-                9. Tra cứu tỷ giá ngoại tệ & quy đổi tiền tệ -> BẮT BUỘC chọn tool `fx_rate_lookup` (tham số `currency`, `amount`).
-                10. Tra cứu địa chỉ, hotline mạng lưới chi nhánh -> BẮT BUỘC chọn tool `branch_directory_lookup` (tham số `city`).
-                11. Đối chiếu thông tin chủ tài khoản, kiểm tra số dư khả dụng -> chọn tool `account_resolve_by_number` (tham số `accountNumber`).
-                12. Chuyển tiền / Chuyển khoản trong nước & 24/7 -> gọi chuỗi kiểm tra hạn mức `transfer_limit_check`, tra cứu ngân hàng `bank_directory_lookup`, tính phí `pricing_transfer_fee`.
-                13. Chuẩn hóa số tiền thành số nguyên VND (VD: 50tr -> 50000000, 1.5 tỷ -> 1500000000, 500k -> 500000).
+                4. Trích lục lịch sử tương tác khách hàng, cuộc gọi tổng đài Contact Center, khiếu nại VOC, đánh giá CSAT/NPS, sự cố/lỗi giao dịch Timeout/Declined trên Mobile/ATM/POS -> BẮT BUỘC chọn tool `customer_interaction_history` (tham số `customerRef`).
+                5. Phân tích chân dung khách hàng 360, hành vi chi tiêu, khẩu vị đầu tư -> BẮT BUỘC chọn tool `customer_persona_analytics` (tham số `customerRef`).
+                6. Kiểm tra điểm tín dụng CIC, nợ xấu, hạn mức vay phê duyệt trước -> BẮT BUỘC chọn tool `customer_credit_score_check` (tham số `customerRef`).
+                7. Tư vấn gợi ý ưu đãi, đề xuất sản phẩm phù hợp tiếp theo (Next-Best-Offer/NBO) -> BẮT BUỘC chọn tool `recommendation_nbo_products` (tham số `customerRef`).
+                8. Tính tiền lãi tiết kiệm, tối ưu phương án gửi tiền, so sánh kỳ hạn -> BẮT BUỘC chọn tool `savings_product_advisor` (tham số `amount`, `termMonths`).
+                9. Dịch vụ thẻ (khóa thẻ, đổi PIN, tra cứu hạn mức thẻ) -> BẮT BUỘC chọn tool `card_service_manage` (tham số `customerRef`, `cardAction`).
+                10. Tra cứu tỷ giá ngoại tệ & quy đổi tiền tệ -> BẮT BUỘC chọn tool `fx_rate_lookup` (tham số `currency`, `amount`).
+                11. Tra cứu địa chỉ, hotline mạng lưới chi nhánh -> BẮT BUỘC chọn tool `branch_directory_lookup` (tham số `city`).
+                12. Đối chiếu thông tin chủ tài khoản, kiểm tra số dư khả dụng -> chọn tool `account_resolve_by_number` (tham số `accountNumber`).
+                13. Chuyển tiền / Chuyển khoản trong nước & 24/7 -> gọi chuỗi kiểm tra hạn mức `transfer_limit_check`, tra cứu ngân hàng `bank_directory_lookup`, tính phí `pricing_transfer_fee`.
+                14. Chuẩn hóa số tiền thành số nguyên VND (VD: 50tr -> 50000000, 1.5 tỷ -> 1500000000, 500k -> 500000).
                 """;
 
             List<Map<String, Object>> messages = List.of(

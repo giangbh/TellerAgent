@@ -41,6 +41,7 @@ public class RuleBasedReasoningEngine {
     private static final Pattern SAVINGS_ADVISE_PAT = Pattern.compile("tính lãi|lãi bao nhiêu|kỳ hạn tốt nhất|tối ưu lãi|phương án tiết kiệm", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern CARD_MANAGE_PAT = Pattern.compile("thẻ tín dụng|thẻ ghi nợ|khóa thẻ|mở thẻ|đổi pin|hạn mức thẻ|\\bvisa\\b|\\bmastercard\\b|\\bnapas\\b", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern HISTORY_PAT = Pattern.compile("sao kê|lịch sử giao dịch|tiền vào tiền ra|trích lục|biến động số dư", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern INTERACTION_PAT = Pattern.compile("tương tác|contact center|tổng đài|khiếu nại|phàn nàn|sự cố|lỗi giao dịch|bị trừ tiền|timeout|từ chối|gặp lỗi|đánh giá|csat|nps|cuộc gọi|phản ánh|voc|ticket", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     private static final Pattern ACCOUNT_PAT = Pattern.compile("\\b\\d{6,14}\\b");
     private static final Pattern NAME_PAT = Pattern.compile("(?:cho|tên|người nhận)\\s+([A-Za-zÀ-ỹĐđ\\s]{3,40}?)(?=\\s+(?:tại|ở|ngân hàng|số tài khoản|stk|tk)|[,.;]|$)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
@@ -56,6 +57,17 @@ public class RuleBasedReasoningEngine {
         String extractedCif = parseCif(text);
         Long extractedAmount = parseAmount(text);
         Integer extractedTerm = parseTerm(text);
+
+        // 0. Dynamic Customer Interaction History & VOC / Incident Log
+        if (INTERACTION_PAT.matcher(lower).find()) {
+            Map<String, Object> entities = new LinkedHashMap<>();
+            if (extractedCif != null) entities.put("customerRef", extractedCif);
+            String account = parseAccount(text);
+            if (account != null) entities.put("accountNumber", account);
+            Intent interactionIntent = new Intent("DYNAMIC_INTERACTION_LOOKUP", "dynamic_autonomous", 0.98, entities);
+            interactionIntent.setQuery(text);
+            return interactionIntent;
+        }
 
         // 1. Dynamic Next-Best-Offer / Product Recommendation
         if (NBO_PAT.matcher(lower).find()) {
@@ -270,6 +282,14 @@ public class RuleBasedReasoningEngine {
             );
         }
 
+        if ("DYNAMIC_INTERACTION_LOOKUP".equals(intentType)) {
+            return new Plan(
+                "Khám phá công cụ động: Trích lục lịch sử tương tác 360 độ (Contact Center, VOC & sự cố giao dịch)",
+                List.of(new PlanStep("S1", "DELEGATE", "dynamic_tool_agent:customer.interaction.history", List.of())),
+                List.of("Có nhật ký cuộc gọi tổng đài", "Có lịch sử khiếu nại VOC", "Có sự cố giao dịch đa kênh", "Có khuyến nghị cho GDV")
+            );
+        }
+
         if ("POLICY_ASSISTANCE".equals(intentType)) {
             return new Plan(
                 "Trả lời yêu cầu nghiệp vụ bằng nguồn đã phê duyệt",
@@ -339,6 +359,7 @@ public class RuleBasedReasoningEngine {
 
         if (lower.contains("tư vấn") || lower.contains("gợi ý") || lower.contains("offer")) selected.add("recommendation.nbo.products");
         if (lower.contains("chân dung") || lower.contains("hành vi")) selected.add("customer.persona.analytics");
+        if (lower.contains("tương tác") || lower.contains("tổng đài") || lower.contains("khiếu nại") || lower.contains("sự cố") || lower.contains("phàn nàn") || lower.contains("timeout") || lower.contains("lỗi")) selected.add("customer.interaction.history");
         if (lower.contains("tín dụng") || lower.contains("cic") || lower.contains("vay")) selected.add("customer.credit.score.check");
         if (lower.contains("lãi") || lower.contains("tiết kiệm")) selected.add("savings.product.advisor");
         if (lower.contains("thẻ") || lower.contains("card")) selected.add("card.service.manage");
