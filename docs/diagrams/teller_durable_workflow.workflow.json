@@ -1,0 +1,86 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "B.Smart Teller Copilot - Durable Workflow",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "draft-to-posted",
+        "label": "1. Main Posting Path",
+        "focus": ["teller", "chat", "planner", "draft", "gate", "authorizer", "core", "final"],
+        "note": "Theo dõi tiến trình từ tiếp nhận yêu cầu, soạn thảo bản nháp đến hạch toán Core Banking."
+      },
+      {
+        "id": "maker-checker-gate",
+        "label": "2. Control Gate & 4-Eyes Check",
+        "focus": ["draft", "gate", "blocked", "authorizer"],
+        "note": "Kiểm soát an toàn: yêu cầu bổ sung thông tin, xác nhận khách hàng và duyệt 4 mắt."
+      }
+    ],
+    "output": "docs/diagrams/teller_durable_workflow.html"
+  },
+  "lanes": [
+    { "id": "ui", "label": "Giao diện Quầy (UI)" },
+    { "id": "orchestrator", "label": "Workflow & Orchestration" },
+    { "id": "policy", "label": "Security & Maker-Checker", "variant": "exception" },
+    { "id": "execution", "label": "MCP & Core Banking" }
+  ],
+  "phases": [
+    { "id": "intake", "label": "1. Intake", "fromCol": 0, "toCol": 1 },
+    { "id": "reasoning", "label": "2. Plan & Draft", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "posting", "label": "3. Control & Posting", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "intake_group", "label": "Session Edge", "lane": "ui", "fromCol": 0, "toCol": 1 },
+    { "id": "planning_group", "label": "ReAct Planning", "lane": "orchestrator", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "gate_group", "label": "4-Eyes Control", "lane": "policy", "fromCol": 3, "toCol": 4, "variant": "security" },
+    { "id": "core_group", "label": "Core Posting", "lane": "execution", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["teller", "chat", "planner", "draft", "gate", "authorizer", "core", "final"],
+  "nodes": [
+    { "id": "teller", "lane": "ui", "col": 0, "type": "external", "label": "Giao dịch viên", "sublabel": "Yêu cầu nghiệp vụ", "width": 132 },
+    { "id": "chat", "lane": "ui", "col": 1, "type": "frontend", "label": "Live Action Draft", "sublabel": "Biểu mẫu quầy", "width": 132 },
+    { "id": "planner", "lane": "orchestrator", "col": 2, "type": "backend", "label": "ReAct Planner", "sublabel": "Intent & Steps", "tag": "DeepSeek-R1", "width": 132 },
+    { "id": "evidence", "lane": "execution", "col": 2, "type": "database", "label": "Evidence Barrier", "sublabel": "Customer 360 & Policy", "tag": "Parallel MCP", "width": 132 },
+    { "id": "draft", "lane": "orchestrator", "col": 3, "type": "backend", "label": "Draft Validation", "sublabel": "Live Form Validate", "width": 132 },
+    { "id": "gate", "lane": "policy", "col": 3, "type": "security", "label": "Control Gate", "sublabel": "Kiểm tra điều kiện", "tag": "4-Eyes Gate", "width": 132 },
+    { "id": "blocked", "lane": "orchestrator", "col": 4, "type": "security", "label": "Waiting Input", "sublabel": "Thiếu dữ liệu nháp", "width": 132 },
+    { "id": "authorizer", "lane": "policy", "col": 4, "type": "security", "label": "Authorizer", "sublabel": "Posting Token", "tag": "Verified DB", "width": 132 },
+    { "id": "core", "lane": "execution", "col": 5, "type": "backend", "label": "Core Gateway", "sublabel": "Hạch toán sổ cái", "tag": "Idempotent", "width": 132 },
+    { "id": "final", "lane": "ui", "col": 5, "type": "backend", "label": "Biên lai giao dịch", "sublabel": "Mã GD Core Banking", "width": 132 }
+  ],
+  "edges": [
+    { "id": "e-request", "from": "teller", "to": "chat", "variant": "default" },
+    { "id": "e-chat-plan", "from": "chat", "to": "planner", "label": "trigger", "variant": "emphasis" },
+    { "id": "e-plan-evidence", "from": "planner", "to": "evidence", "label": "fan-out", "variant": "dashed" },
+    { "id": "e-plan-draft", "from": "planner", "to": "draft", "label": "plan steps", "variant": "emphasis" },
+    { "id": "e-draft-gate", "from": "draft", "to": "gate", "label": "validate", "variant": "security" },
+    { "id": "e-gate-blocked", "from": "gate", "to": "blocked", "label": "missing", "variant": "security", "role": "error" },
+    { "id": "e-gate-auth", "from": "gate", "to": "authorizer", "label": "passed", "variant": "security" },
+    { "id": "e-auth-core", "from": "authorizer", "to": "core", "label": "dispatch", "variant": "emphasis" },
+    { "id": "e-core-final", "from": "core", "to": "final", "label": "receipt", "variant": "emphasis", "role": "return" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Durable Workflow Engine",
+      "items": [
+        "Mỗi phiên làm việc được quản lý bằng Temporal-style Durable State Machine",
+        "Trạng thái giao dịch được lưu trữ bất biến (Event Sourcing) trên SQLite",
+        "Có thể khôi phục lại workflow tại bất kỳ bước nào khi gặp sự cố mạng"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Multi-Gate Security Check",
+      "items": [
+        "Customer Consent bắt buộc kèm bằng chứng (OTP / Chữ ký / Sinh trắc)",
+        "Segregation of Duties: Kiểm soát viên duyệt độc lập, không trùng GDV",
+        "Posting Authorization chỉ cấp phép khi thỏa mãn 100% điều kiện"
+      ]
+    }
+  ]
+}

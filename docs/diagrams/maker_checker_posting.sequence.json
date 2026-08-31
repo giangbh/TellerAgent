@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "B.Smart Teller Copilot - Maker-Checker & Core Posting Sequence",
+    "output": "docs/diagrams/maker_checker_posting.html",
+    "viewBox": [820, 920],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "customer-consent",
+        "label": "1. Customer Consent Recording",
+        "focus": ["cust", "teller", "orch"],
+        "note": "Thu thập bằng chứng đồng thuận (OTP / Sinh trắc / Chữ ký) từ khách hàng."
+      },
+      {
+        "id": "dual-approval",
+        "label": "2. Maker-Checker Approval",
+        "focus": ["teller", "checker", "orch"],
+        "note": "Xác nhận của GDV và Kiểm soát viên với cơ chế chống xung đột quyền hạn."
+      },
+      {
+        "id": "posting-execution",
+        "label": "3. Core Banking Posting",
+        "focus": ["teller", "orch", "auth", "core"],
+        "note": "Kiểm chứng độc lập từ DB bền vững, cấp PostingAuthorization và hạch toán Core."
+      }
+    ]
+  },
+  "participants": [
+    { "id": "cust", "type": "external", "label": "Customer", "sublabel": "Counter Client" },
+    { "id": "teller", "type": "external", "label": "Teller", "sublabel": "Maker Actor" },
+    { "id": "checker", "type": "external", "label": "Supervisor", "sublabel": "Checker Actor" },
+    { "id": "orch", "type": "backend", "label": "Orchestrator", "sublabel": "Session & State" },
+    { "id": "auth", "type": "security", "label": "Authorizer", "sublabel": "Posting Guard" },
+    { "id": "core", "type": "database", "label": "Core Gateway", "sublabel": "Banking Ledger" }
+  ],
+  "segments": [
+    { "from": 150, "to": 310, "label": "1. Customer Consent" },
+    { "from": 326, "to": 550, "label": "2. Dual Approval (4-Eyes)" },
+    { "from": 566, "to": 800, "label": "3. Authorization & Core Posting" }
+  ],
+  "messages": [
+    { "id": "msg-consent-cust", "from": "cust", "to": "teller", "y": 180, "label": "Ký chứng từ / Cung cấp OTP", "variant": "default" },
+    { "id": "msg-consent-post", "from": "teller", "to": "orch", "y": 222, "label": "POST /consent {OTP, ref: 839211}", "variant": "emphasis" },
+    { "id": "msg-consent-ok", "from": "orch", "to": "teller", "y": 264, "label": "200 Consent Recorded", "variant": "return" },
+
+    { "id": "msg-app-teller", "from": "teller", "to": "orch", "y": 340, "label": "POST /approvals {role: teller}", "variant": "emphasis" },
+    { "id": "msg-app-teller-ok", "from": "orch", "to": "teller", "y": 380, "label": "200 Maker Signed", "variant": "return" },
+    { "id": "msg-app-ksv", "from": "checker", "to": "orch", "y": 424, "label": "POST /approvals {role: supervisor}", "variant": "security" },
+    { "id": "msg-segregate-check", "from": "orch", "to": "auth", "y": 464, "label": "validateSegregation(maker != checker)", "variant": "security" },
+    { "id": "msg-app-ksv-ok", "from": "orch", "to": "checker", "y": 504, "label": "200 READY_TO_POST", "variant": "return" },
+
+    { "id": "msg-exec", "from": "teller", "to": "orch", "y": 580, "label": "POST /sessions/{id}/execute", "variant": "emphasis" },
+    { "id": "msg-auth-req", "from": "orch", "to": "auth", "y": 618, "label": "authorize(sessionId)", "variant": "security" },
+    { "id": "msg-auth-grant", "from": "auth", "to": "orch", "y": 656, "label": "Issue PostingAuthorization Token", "variant": "return" },
+    { "id": "msg-core-dispatch", "from": "orch", "to": "core", "y": 696, "label": "dispatchCorePosting(token, payload)", "variant": "emphasis" },
+    { "id": "msg-core-ack", "from": "core", "to": "orch", "y": 734, "label": "Posted (CoreRef: FT260819482)", "variant": "return" },
+    { "id": "msg-exec-res", "from": "orch", "to": "teller", "y": 772, "label": "Session Status: POSTED + Receipt", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "teller", "from": 174, "to": 272, "type": "external" },
+    { "participant": "orch", "from": 216, "to": 780, "type": "backend" },
+    { "participant": "checker", "from": 418, "to": 510, "type": "external" },
+    { "participant": "auth", "from": 612, "to": 664, "type": "security" },
+    { "participant": "core", "from": 690, "to": 742, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Evidence-Backed Consent",
+      "items": [
+        "Sự đồng thuận của khách hàng phải gắn liền với bằng chứng",
+        "Hỗ trợ OTP, BIOMETRIC, SIGNATURE, DOCUMENT",
+        "Ngăn chặn việc hệ thống tự ý xác nhận thay khách hàng"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Strict 4-Eyes Segregation",
+      "items": [
+        "Kiểm soát viên bắt buộc phải khác GDV lập giao dịch",
+        "Role được xác thực qua Identity Token, không nhận từ payload",
+        "State machine tự động chặn hạch toán nếu thiếu phê duyệt"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Idempotency Ledger",
+      "items": [
+        "Mỗi giao dịch sinh traceId và Idempotency Key duy nhất",
+        "Core Banking dispatch kiểm tra chống ghi đè/trùng lặp",
+        "Lưu trữ audit trail bất biến trên SQLite DB"
+      ]
+    }
+  ]
+}

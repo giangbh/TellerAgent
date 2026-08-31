@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "B.Smart Teller Copilot - Session State Lifecycle",
+    "output": "docs/diagrams/session_state_lifecycle.html",
+    "viewBox": [980, 660],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-lifecycle",
+        "label": "1. Main Posting Path",
+        "focus": ["init", "intent", "drafting", "approval", "posted"],
+        "note": "Vòng đời chuẩn từ khi mở phiên, nhận diện ý định, soạn nháp, phê duyệt đến khi hạch toán thành công."
+      },
+      {
+        "id": "human-waits",
+        "label": "2. Human Input & Approvals",
+        "focus": ["drafting", "waiting_input", "approval", "awaiting_approval"],
+        "note": "Các trạng thái chờ tương tác: bổ sung thông tin thiếu, ghi nhận đồng thuận và duyệt 4 mắt."
+      },
+      {
+        "id": "recovery-and-exits",
+        "label": "3. Risk Screening & Terminal Exits",
+        "focus": ["drafting", "risk_review", "cancelled", "failed"],
+        "note": "Xử lý ngoại lệ: rà soát rủi ro AML, hủy phiên hoặc thất bại khi kết nối Core Banking."
+      }
+    ]
+  },
+  "lanes": [
+    { "id": "main", "label": "Vòng đời Chính (Main Phases)" },
+    { "id": "waiting", "label": "Chờ Tương tác (Human Gates)" },
+    { "id": "exceptions", "label": "Kiểm soát Rủi ro (Risk Loop)" },
+    { "id": "terminal", "label": "Trạng thái Kết thúc (Terminal Exits)" }
+  ],
+  "states": [
+    { "id": "init", "type": "start", "label": "INITIALIZED", "sublabel": "Mở phiên giao dịch", "lane": "main", "col": 0, "step": "01", "tag": "entry" },
+    { "id": "intent", "type": "active", "label": "INTENT_FOUND", "sublabel": "Nhận diện ý định", "lane": "main", "col": 1, "step": "02", "tag": "ai" },
+    { "id": "drafting", "type": "active", "label": "DRAFT_READY", "sublabel": "Bản nháp hợp lệ", "lane": "main", "col": 2, "step": "03", "tag": "draft" },
+    { "id": "approval", "type": "decision", "label": "READY_TO_POST", "sublabel": "Đủ 4 mắt phê duyệt", "lane": "main", "col": 3, "step": "04", "tag": "gate" },
+    { "id": "posted", "type": "success", "label": "POSTED", "sublabel": "Hạch toán thành công", "lane": "main", "col": 4, "step": "05", "tag": "done" },
+    { "id": "waiting_input", "type": "waiting", "label": "WAITING_INPUT", "sublabel": "Chờ GDV bổ sung", "lane": "waiting", "col": 0, "tag": "pause" },
+    { "id": "awaiting_approval", "type": "waiting", "label": "WAIT_APPROVAL", "sublabel": "Chờ KSV/Khách ký", "lane": "waiting", "col": 1, "tag": "wait" },
+    { "id": "risk_review", "type": "failure", "label": "RISK_REVIEW", "sublabel": "Cảnh báo AML/Limit", "lane": "exceptions", "col": 2, "yOffset": 78, "tag": "review" },
+    { "id": "cancelled", "type": "failure", "label": "CANCELLED", "sublabel": "Hủy phiên giao dịch", "lane": "terminal", "col": 0, "tag": "terminal" },
+    { "id": "failed", "type": "failure", "label": "POST_FAILED", "sublabel": "Lỗi Core Banking", "lane": "terminal", "col": 1, "tag": "terminal" }
+  ],
+  "transitions": [
+    { "id": "t-draft-input", "from": "drafting", "to": "waiting_input", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "id": "t-appr-wait", "from": "approval", "to": "awaiting_approval", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "drop" },
+    { "id": "t-input-cancel", "from": "waiting_input", "to": "cancelled", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "id": "t-wait-fail", "from": "awaiting_approval", "to": "failed", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "State Transition Guarantee",
+      "items": [
+        "Trạng thái giao dịch tuần tự và không thể nhảy cóc qua các bước kiểm soát",
+        "Mọi trạng thái được lưu trữ đồng bộ vào SQLite State Store",
+        "Chỉ khi đạt READY_TO_POST mới được kích hoạt cấp PostingAuthorization"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Non-blocking Human Input",
+      "items": [
+        "WAITING_INPUT tạm dừng luồng mà không hủy phiên làm việc",
+        "GDV có thể bổ sung số tài khoản hoặc số tiền bất kỳ lúc nào",
+        "Session tự động cập nhật ngay khi nhận được thông tin mới"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Strict Failure Handling",
+      "items": [
+        "RISK_REVIEW chuyển giao dịch sang trạng thái yêu cầu kiểm soát viên duyệt",
+        "POST_FAILED rollback và ghi log chi tiết mã lỗi từ Core Banking",
+        "Đảm bảo nguyên tắc bảo toàn trạng thái tài chính (ACID/Idempotency)"
+      ]
+    }
+  ]
+}

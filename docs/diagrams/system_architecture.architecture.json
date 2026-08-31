@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "B.Smart Teller Copilot - System Architecture",
+    "output": "docs/diagrams/system_architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "copilot-flow",
+        "label": "1. AI Copilot & MCP Read Flow",
+        "focus": ["ui", "api", "orch", "ai", "mcp", "domain"],
+        "note": "Luồng tương tác AI hỗ trợ quầy: nhận diện ý định, lập kế hoạch ReAct và tra cứu 22 MCP Tools."
+      },
+      {
+        "id": "core-posting-flow",
+        "label": "2. 4-Eyes Control & Core Posting",
+        "focus": ["ui", "api", "orch", "guard", "gateway", "db"],
+        "note": "Luồng kiểm soát 4 mắt và hạch toán Core Banking độc lập qua PostingAuthorization."
+      },
+      {
+        "id": "observability-flow",
+        "label": "3. Observability & AI Judge Audit",
+        "focus": ["ui", "api", "orch", "judge", "ai", "workflow", "db"],
+        "note": "Hệ thống giám định chất lượng LLM-as-a-Judge 4 trục và OpenTelemetry Tracing."
+      }
+    ]
+  },
+  "components": [
+    { "id": "ui", "type": "frontend", "label": "Smart Counter UI", "sublabel": "React 19 + Vite", "pos": [40, 270], "size": [130, 60], "tag": "Dark Mode" },
+    { "id": "auth", "type": "security", "label": "Actor Resolver", "sublabel": "RBAC & PII Masking", "pos": [40, 110], "size": [130, 60], "tag": "4-Eyes Auth" },
+    { "id": "api", "type": "backend", "label": "Spring Boot API", "sublabel": "Session & MCP Edge", "pos": [250, 270], "size": [140, 60] },
+    { "id": "orch", "type": "backend", "label": "Teller Orchestrator", "sublabel": "Bounded Autonomy", "pos": [470, 270], "size": [150, 60], "tag": "Coordinator" },
+    { "id": "workflow", "type": "backend", "label": "Workflow Engine", "sublabel": "Durable State Machine", "pos": [470, 110], "size": [150, 60] },
+    { "id": "ai", "type": "backend", "label": "DeepSeek Engine", "sublabel": "ReAct & Function Call", "pos": [470, 430], "size": [150, 60], "tag": "DeepSeek-R1" },
+    { "id": "judge", "type": "security", "label": "LLM Judge Service", "sublabel": "4-Axis Quality Audit", "pos": [250, 430], "size": [140, 60], "tag": "Auditor" },
+    { "id": "mcp", "type": "security", "label": "MCP Protocol Server", "sublabel": "22 Read / Validate Tools", "pos": [700, 270], "size": [150, 60], "tag": "Zero Write" },
+    { "id": "domain", "type": "database", "label": "8 Domain Services", "sublabel": "Customer / Account / VOC", "pos": [930, 270], "size": [150, 60] },
+    { "id": "guard", "type": "security", "label": "Posting Authorizer", "sublabel": "Maker-Checker Guard", "pos": [700, 430], "size": [150, 60], "tag": "Security Gate" },
+    { "id": "gateway", "type": "backend", "label": "Internal API Gateway", "sublabel": "Core Banking Dispatch", "pos": [930, 430], "size": [150, 60], "tag": "Financial Write" },
+    { "id": "db", "type": "database", "label": "SQLite Ledger Store", "sublabel": "Idempotency Ledger", "pos": [700, 110], "size": [150, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Spring Boot 3.4 Application Backend", "wraps": ["api", "orch", "workflow", "ai", "judge", "mcp", "domain", "guard", "gateway", "db"] }
+  ],
+  "connections": [
+    { "id": "ui-to-api", "from": "ui", "to": "api", "label": "REST API", "variant": "emphasis", "labelAt": [200, 250] },
+    { "id": "auth-to-api", "from": "auth", "to": "api", "label": "RBAC Validate", "variant": "security", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-to-orch", "from": "api", "to": "orch", "label": "dispatch", "labelAt": [425, 250] },
+    { "id": "orch-to-workflow", "from": "orch", "to": "workflow", "label": "signals", "fromSide": "top", "toSide": "bottom" },
+    { "id": "workflow-to-db", "from": "workflow", "to": "db", "label": "persist state", "labelAt": [650, 90] },
+    { "id": "orch-to-ai", "from": "orch", "to": "ai", "label": "ReAct prompt", "fromSide": "bottom", "toSide": "top", "labelAt": [545, 360] },
+    { "id": "orch-to-mcp", "from": "orch", "to": "mcp", "label": "tools/call", "variant": "emphasis", "labelAt": [655, 250] },
+    { "id": "mcp-to-domain", "from": "mcp", "to": "domain", "label": "data query", "labelAt": [885, 250] },
+    { "id": "orch-to-guard", "from": "orch", "to": "guard", "label": "authorize()", "variant": "security" },
+    { "id": "guard-to-gateway", "from": "guard", "to": "gateway", "label": "with token", "variant": "security", "labelAt": [885, 410] },
+    { "id": "api-to-judge", "from": "api", "to": "judge", "label": "audit request", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [320, 360] },
+    { "id": "judge-to-ai", "from": "judge", "to": "ai", "label": "4-axis eval", "variant": "dashed", "labelAt": [425, 450] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Bounded Autonomy Pattern",
+      "items": [
+        "Phân tách tuyệt đối giữa Tầng Đọc/Khám phá (MCP) và Tầng Ghi tài chính (Core Gateway)",
+        "AI Copilot chỉ dừng lại ở bước gợi ý và điền nháp (Live Draft Form)",
+        "Mọi lệnh hạch toán thực bắt buộc có chữ ký kép (Maker-Checker) từ con người"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Decoupled Banking Ecosystem",
+      "items": [
+        "8 Domain Services độc lập mô phỏng hệ sinh thái Core Banking hoàn chỉnh",
+        "Chuẩn giao thức MCP (JSON-RPC 2.0) giúp mở rộng linh hoạt thêm các công cụ mới",
+        "Bộ lọc PiiMaskingService tự động che chắn dữ liệu nhạy cảm trước khi gửi LLM"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Enterprise Observability",
+      "items": [
+        "OpenTelemetry Distributed Tracing đo lường chính xác từng Span thực thi",
+        "Module LLM-as-a-Judge đánh giá độc lập phát hiện Hallucination và vi phạm quy chế",
+        "Durable Workflow Engine lưu trữ Event Sourcing bất biến trên SQLite"
+      ]
+    }
+  ]
+}

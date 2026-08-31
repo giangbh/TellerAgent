@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "B.Smart Teller Copilot - AI Reasoning & MCP Sequence",
+    "output": "docs/diagrams/copilot_orchestration.html",
+    "viewBox": [820, 900],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "intent-and-react",
+        "label": "1. Intent & ReAct Planning",
+        "focus": ["gdv", "ctrl", "orch", "ai"],
+        "note": "Nhận diện ý định và lập kế hoạch ReAct nhiều bước với DeepSeek Function Calling."
+      },
+      {
+        "id": "evidence-fanout",
+        "label": "2. Evidence Barrier & MCP",
+        "focus": ["orch", "mcp", "db"],
+        "note": "Thực thi song song Customer Context và Policy qua MCP Read-Only Tools."
+      },
+      {
+        "id": "draft-and-risk",
+        "label": "3. Live Draft & Response",
+        "focus": ["orch", "mcp", "db", "ctrl", "gdv"],
+        "note": "Xác thực bản nháp giao dịch, rà soát hạn mức AML và đồng bộ UI."
+      }
+    ]
+  },
+  "participants": [
+    { "id": "gdv", "type": "external", "label": "Teller", "sublabel": "Counter UI" },
+    { "id": "ctrl", "type": "frontend", "label": "Session API", "sublabel": "Controller" },
+    { "id": "orch", "type": "backend", "label": "Orchestrator", "sublabel": "Core Engine" },
+    { "id": "ai", "type": "backend", "label": "AI Planner", "sublabel": "DeepSeek ReAct" },
+    { "id": "mcp", "type": "security", "label": "MCP Layer", "sublabel": "22 Read Tools" },
+    { "id": "db", "type": "database", "label": "SQLite Store", "sublabel": "State & Audit" }
+  ],
+  "segments": [
+    { "from": 150, "to": 310, "label": "1. Intent & ReAct Plan" },
+    { "from": 326, "to": 530, "label": "2. Parallel Evidence Barrier" },
+    { "from": 546, "to": 720, "label": "3. Draft Validation & Risk" },
+    { "from": 736, "to": 830, "label": "4. Final Sync" }
+  ],
+  "messages": [
+    { "id": "msg-post", "from": "gdv", "to": "ctrl", "y": 180, "label": "POST /sessions/{id}/messages", "variant": "emphasis" },
+    { "id": "msg-orch", "from": "ctrl", "to": "orch", "y": 218, "label": "processMessage(sessionId, text)", "variant": "default" },
+    { "id": "msg-intent", "from": "orch", "to": "ai", "y": 254, "label": "detectIntent(text, intent)", "variant": "emphasis" },
+    { "id": "msg-intent-res", "from": "ai", "to": "orch", "y": 284, "label": "Intent: domestic_transfer", "variant": "return" },
+    { "id": "msg-plan", "from": "orch", "to": "ai", "y": 318, "label": "proposePlan(session)", "variant": "emphasis" },
+    { "id": "msg-plan-res", "from": "ai", "to": "orch", "y": 348, "label": "Plan: [Context, Policy, Draft, Risk]", "variant": "return" },
+    
+    { "id": "msg-mcp-cust", "from": "orch", "to": "mcp", "y": 395, "label": "tools/call: customer.profile.read", "variant": "security" },
+    { "id": "msg-mcp-cust-res", "from": "mcp", "to": "orch", "y": 432, "label": "Profile & Segment: Priority VIP", "variant": "return" },
+    { "id": "msg-mcp-pol", "from": "orch", "to": "mcp", "y": 468, "label": "tools/call: knowledge.policy.search", "variant": "security" },
+    { "id": "msg-mcp-pol-res", "from": "mcp", "to": "orch", "y": 504, "label": "Policy rules & Transfer limits", "variant": "return" },
+
+    { "id": "msg-mcp-draft", "from": "orch", "to": "mcp", "y": 560, "label": "tools/call: transaction.draft.validate", "variant": "security" },
+    { "id": "msg-mcp-draft-res", "from": "mcp", "to": "orch", "y": 596, "label": "Draft Validation: VALID (0 missing)", "variant": "return" },
+    { "id": "msg-risk", "from": "orch", "to": "mcp", "y": 632, "label": "tools/call: risk.transfer.screen", "variant": "security" },
+    { "id": "msg-risk-res", "from": "mcp", "to": "orch", "y": 668, "label": "Decision: PASS (AML Clear)", "variant": "return" },
+
+    { "id": "msg-save-db", "from": "orch", "to": "db", "y": 710, "label": "saveSession & workflow.signal()", "variant": "dashed" },
+    { "id": "msg-orch-res", "from": "orch", "to": "ctrl", "y": 750, "label": "Session (DRAFT_READY + Thinking)", "variant": "return" },
+    { "id": "msg-ui-res", "from": "ctrl", "to": "gdv", "y": 788, "label": "Live Draft Form + Thinking Steps", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "ctrl", "from": 174, "to": 796, "type": "frontend" },
+    { "participant": "orch", "from": 212, "to": 756, "type": "backend" },
+    { "participant": "ai", "from": 248, "to": 354, "type": "backend" },
+    { "participant": "mcp", "from": 390, "to": 674, "type": "security" },
+    { "participant": "db", "from": 704, "to": 740, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Bounded Autonomy",
+      "items": [
+        "Tầng MCP chỉ cung cấp 22 Read & Draft Validate Tools",
+        "Tuyệt đối không có Financial Write Tool trong MCP",
+        "AI chỉ có quyền đề xuất và điền nháp trên màn hình GDV"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Evidence Fan-Out",
+      "items": [
+        "Chạy song song thu thập Customer 360 & Policy",
+        "Đảm bảo thời gian phản hồi tối ưu cho GDV tại quầy",
+        "Dữ liệu được che chắn PII tự động trước khi tổng hợp"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Thinking Steps UI",
+      "items": [
+        "OpenTelemetry Spans chuyển đổi thành Thinking Steps",
+        "Hiển thị minh bạch từng mili-giây quá trình suy luận",
+        "GDV kiểm soát trực quan mọi bước thực thi"
+      ]
+    }
+  ]
+}

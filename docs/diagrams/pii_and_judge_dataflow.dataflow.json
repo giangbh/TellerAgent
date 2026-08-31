@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "B.Smart Teller Copilot - Data Flow & PII Audit Topology",
+    "output": "docs/diagrams/pii_and_judge_dataflow.html",
+    "viewBox": [1080, 780],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "copilot-data-transit",
+        "label": "1. Copilot Data & PII Masking Path",
+        "focus": ["teller_input", "customer_data", "session_api", "pii_masker", "deepseek_ai", "counter_ui"],
+        "note": "Theo dõi dòng dữ liệu từ yêu cầu nghiệp vụ, che chắn PII tự động đến tổng hợp câu trả lời."
+      },
+      {
+        "id": "judge-audit-path",
+        "label": "2. LLM-as-a-Judge Audit & APM",
+        "focus": ["deepseek_ai", "ground_truth", "llm_judge", "opentelemetry"],
+        "note": "Đối soát câu trả lời của AI với dữ liệu Ground Truth thực tế để chấm điểm 4 trục chất lượng."
+      },
+      {
+        "id": "violation-recovery",
+        "label": "3. Security & Policy Violations",
+        "focus": ["pii_masker", "dead_letter", "supervisor_audit"],
+        "note": "Xử lý các trường hợp phát hiện rủi ro, vi phạm quy định hoặc PII rò rỉ."
+      }
+    ]
+  },
+  "stages": [
+    { "label": "Nguồn Dữ Liệu (Producers)" },
+    { "label": "Tiếp Nhận & Điều Phối (Transit)" },
+    { "label": "Xử Lý & Che Chắn PII (Processors)" },
+    { "label": "Giám Định & Lưu Trữ (State & Audit)" },
+    { "label": "Đích Đến & Quan Sát (Consumers)" }
+  ],
+  "nodes": [
+    { "id": "teller_input", "type": "frontend", "label": "Teller Input", "sublabel": "Prompt tại quầy", "stage": 0, "row": 0, "tag": "GDV" },
+    { "id": "customer_data", "type": "backend", "label": "Customer Raw Data", "sublabel": "Dữ liệu Core KYC", "stage": 0, "row": 2, "tag": "Raw PII" },
+    { "id": "session_api", "type": "messagebus", "label": "Session Pipeline", "sublabel": "REST / JSON-RPC", "stage": 1, "row": 0, "tag": "TraceID" },
+    { "id": "domain_bus", "type": "messagebus", "label": "MCP Tool Registry", "sublabel": "22 Read Tools", "stage": 1, "row": 2, "tag": "Read Only" },
+    { "id": "pii_masker", "type": "security", "label": "PII Masking Engine", "sublabel": "Che CCCD, SĐT, Số thẻ", "stage": 2, "row": 0, "tag": "Sanitizer" },
+    { "id": "deepseek_ai", "type": "backend", "label": "DeepSeek Reasoning", "sublabel": "ReAct Function Call", "stage": 2, "row": 2, "tag": "AI Engine" },
+    { "id": "ground_truth", "type": "database", "label": "Ground Truth DB", "sublabel": "Dữ liệu đối soát gốc", "stage": 3, "row": 0, "tag": "Truth" },
+    { "id": "llm_judge", "type": "security", "label": "LLM-as-a-Judge", "sublabel": "Giám định 4 trục", "stage": 3, "row": 2, "tag": "Auditor" },
+    { "id": "dead_letter", "type": "messagebus", "label": "Audit Violation DLQ", "sublabel": "Sự kiện rủi ro PII", "stage": 3, "row": 4, "tag": "DLQ" },
+    { "id": "counter_ui", "type": "frontend", "label": "Live Counter UI", "sublabel": "Biểu mẫu & Trợ lý", "stage": 4, "row": 0, "tag": "UI Client" },
+    { "id": "opentelemetry", "type": "database", "label": "OpenTelemetry APM", "sublabel": "Trace Waterfall", "stage": 4, "row": 2, "tag": "APM" },
+    { "id": "supervisor_audit", "type": "external", "label": "Kiểm Soát Viên", "sublabel": "Rà soát vi phạm", "stage": 4, "row": 4, "tag": "SRE/Audit" }
+  ],
+  "flows": [
+    { "from": "teller_input", "to": "session_api", "label": "Prompt", "classification": "user query", "variant": "emphasis", "route": "straight" },
+    { "from": "customer_data", "to": "domain_bus", "label": "Raw facts", "classification": "core KYC", "variant": "emphasis", "route": "straight" },
+    { "from": "session_api", "to": "pii_masker", "label": "Sanitize query", "classification": "sanitized", "variant": "emphasis", "route": "straight" },
+    { "from": "pii_masker", "to": "deepseek_ai", "label": "Safe prompt", "classification": "masked", "variant": "emphasis", "labelDy": 24 },
+    { "from": "domain_bus", "to": "deepseek_ai", "label": "MCP tool data", "classification": "safe context", "variant": "emphasis", "route": "straight" },
+    { "from": "pii_masker", "to": "ground_truth", "label": "Store facts", "classification": "truth snapshot", "variant": "emphasis", "route": "straight" },
+    { "from": "deepseek_ai", "to": "llm_judge", "label": "AI response", "classification": "candidate", "variant": "emphasis", "route": "straight" },
+    { "from": "ground_truth", "to": "counter_ui", "label": "Live Draft Form", "classification": "verified", "variant": "emphasis", "route": "straight" },
+    { "from": "llm_judge", "to": "opentelemetry", "label": "Judge 4-axis score", "classification": "trace metric", "variant": "emphasis", "route": "straight" },
+    { "from": "llm_judge", "to": "dead_letter", "label": "Audit violation", "classification": "security flag", "variant": "security", "labelDy": 24 },
+    { "from": "dead_letter", "to": "supervisor_audit", "label": "Audit review", "classification": "restricted", "variant": "security", "route": "straight" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Automated PII Masking",
+      "items": [
+        "Mọi dữ liệu nhạy cảm (CCCD, Số tài khoản, Số dư) được che chắn tự động",
+        "Đảm bảo an toàn thông tin theo chuẩn bảo mật ngân hàng",
+        "Dữ liệu gốc được cô lập hoàn toàn khỏi prompt gửi ra dịch vụ ngoài"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "LLM-as-a-Judge Evaluation",
+      "items": [
+        "Đánh giá độc lập 4 trục: Hallucination, Compliance, Politeness, Latency",
+        "Đối soát từng con số trong câu trả lời với Ground Truth Data",
+        "Tự động xuất phán quyết PASS, WARNING hoặc FAIL"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Enterprise Observability",
+      "items": [
+        "Thu thập toàn bộ Spans thời gian thực qua OpenTelemetry Tracer",
+        "Cảnh báo vi phạm được đẩy vào kênh kiểm soát của Giám sát viên",
+        "Lưu vết đầy đủ phục vụ thanh tra và kiểm toán nghiệp vụ"
+      ]
+    }
+  ]
+}
