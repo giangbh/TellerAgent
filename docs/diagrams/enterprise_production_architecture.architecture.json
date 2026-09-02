@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "B.Smart Teller Copilot - Enterprise Production Architecture (10,000 Tellers Scale)",
+    "output": "docs/diagrams/enterprise_production_architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "gdv-to-core",
+        "label": "1. End-to-End Request Path",
+        "focus": ["gdv_clients", "edge_lb", "app_cluster", "resilience_gw", "fis_profile"],
+        "note": "Luồng xử lý từ 10.000 GDV qua Gateway, Pods Java 21 Virtual Threads đến FIS Profile Core Banking."
+      },
+      {
+        "id": "ai-and-state",
+        "label": "2. AI Inference & Distributed State",
+        "focus": ["app_cluster", "ai_gpu", "redis_lock", "db_postgres", "kafka_bus"],
+        "note": "Cụm GPU vLLM nội bộ, khóa phân tán Redis Lock và Event Sourcing qua Kafka."
+      },
+      {
+        "id": "banking-integration",
+        "label": "3. Real Banking Core Integration",
+        "focus": ["resilience_gw", "fis_profile", "cic_aml", "card_napas"],
+        "note": "Tích hợp đa hệ thống ngân hàng: FIS Profile Core, Trung tâm CIC và NAPAS với Circuit Breaker."
+      }
+    ]
+  },
+  "components": [
+    { "id": "gdv_clients", "type": "frontend", "label": "10,000 Tellers", "sublabel": "React 19 + SSE Stream", "pos": [40, 280], "size": [130, 60], "tag": "Nationwide" },
+    { "id": "edge_lb", "type": "cloud", "label": "API Gateway / LB", "sublabel": "F5 / NGINX Ingress", "pos": [40, 120], "size": [130, 60], "tag": "TLS 1.3" },
+    { "id": "app_cluster", "type": "backend", "label": "K8s Copilot Pods", "sublabel": "Java 21 Virtual Threads", "pos": [260, 280], "size": [150, 60], "tag": "Auto-scaling" },
+    { "id": "redis_lock", "type": "database", "label": "Redis Cluster", "sublabel": "Redisson Lock + L2 Cache", "pos": [260, 120], "size": [150, 60], "tag": "< 1ms Cache" },
+    { "id": "db_postgres", "type": "database", "label": "PostgreSQL / Oracle", "sublabel": "HikariCP State Pool", "pos": [260, 440], "size": [150, 60], "tag": "ACID / High TPS" },
+    { "id": "resilience_gw", "type": "security", "label": "Resilience Guard", "sublabel": "Circuit Breaker & 4-Eyes", "pos": [500, 280], "size": [150, 60], "tag": "Resilience4j" },
+    { "id": "ai_gpu", "type": "backend", "label": "Private vLLM Cluster", "sublabel": "DeepSeek-R1 14B/32B", "pos": [500, 120], "size": [150, 60], "tag": "> 500 req/s" },
+    { "id": "kafka_bus", "type": "messagebus", "label": "Kafka Event Bus", "sublabel": "Immutable Audit Log", "pos": [500, 440], "size": [150, 60], "tag": "Event Sourcing" },
+    { "id": "fis_profile", "type": "database", "label": "FIS Profile Core", "sublabel": "Core Banking Ledger", "pos": [740, 280], "size": [160, 60], "tag": "ISO 20022 / SOA" },
+    { "id": "cic_aml", "type": "security", "label": "CIC & AML Center", "sublabel": "Credit Score & Screen", "pos": [740, 120], "size": [160, 60], "tag": "Compliance" },
+    { "id": "card_napas", "type": "cloud", "label": "Card Core & NAPAS", "sublabel": "Switching & Card Mgmt", "pos": [740, 440], "size": [160, 60], "tag": "24/7 Fast Pay" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Kubernetes High-Availability Cluster", "wraps": ["app_cluster", "redis_lock", "db_postgres"] },
+    { "kind": "security-group", "label": "Core Banking Infrastructure Tier", "wraps": ["fis_profile", "cic_aml", "card_napas"] }
+  ],
+  "connections": [
+    { "id": "gdv-to-lb", "from": "gdv_clients", "to": "edge_lb", "label": "HTTPS Traffic", "variant": "emphasis", "fromSide": "top", "toSide": "bottom" },
+    { "id": "lb-to-app", "from": "edge_lb", "to": "app_cluster", "label": "load balance" },
+    { "id": "app-to-redis", "from": "app_cluster", "to": "redis_lock", "label": "distributed lock", "fromSide": "top", "toSide": "bottom" },
+    { "id": "app-to-db", "from": "app_cluster", "to": "db_postgres", "label": "session state", "fromSide": "bottom", "toSide": "top", "labelAt": [335, 410] },
+    { "id": "app-to-resilience", "from": "app_cluster", "to": "resilience_gw", "label": "guarded call", "variant": "emphasis" },
+    { "id": "db-to-kafka", "from": "db_postgres", "to": "kafka_bus", "label": "async audit", "variant": "dashed" },
+    { "id": "resilience-to-ai", "from": "resilience_gw", "to": "ai_gpu", "label": "vLLM stream", "variant": "emphasis", "fromSide": "top", "toSide": "bottom", "labelAt": [575, 200] },
+    { "id": "resilience-to-fis", "from": "resilience_gw", "to": "fis_profile", "label": "ISO 20022", "variant": "security" },
+    { "id": "ai-to-cic", "from": "ai_gpu", "to": "cic_aml", "label": "screen query" },
+    { "id": "resilience-to-card", "from": "resilience_gw", "to": "card_napas", "label": "card & napas", "fromSide": "bottom", "toSide": "left", "labelAt": [680, 420] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "FIS Profile Core Banking",
+      "items": [
+        "Hệ thống Core Banking FIS Profile xử lý hạch toán tài khoản, tiền gửi và sổ cái",
+        "Kết nối trực tiếp qua giao thức chuẩn ISO 20022 và API SOA tốc độ cao",
+        "Chống trùng lặp bằng Idempotency Key & PostingAuthorization được kiểm chứng"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "10,000 GDV Concurrency",
+      "items": [
+        "Java 21 Virtual Threads xử lý hơn 20.000 kết nối đồng thời không nghẽn",
+        "Redis Cluster quản lý Distributed Lock (Redisson) và Session Cache",
+        "Cơ sở dữ liệu PostgreSQL / Oracle RAC đảm bảo ACID và High TPS"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "On-Premise Private AI",
+      "items": [
+        "Cụm GPU vLLM nội bộ (DeepSeek-R1 14B/32B) đạt > 500 req/s",
+        "Bảo mật 100% dữ liệu ngân hàng, không gửi thông tin ra ngoài Internet",
+        "Resilience4j Circuit Breaker cô lập sự cố khi backend đối tác chậm"
+      ]
+    }
+  ]
+}

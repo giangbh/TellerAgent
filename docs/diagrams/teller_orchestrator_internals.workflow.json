@@ -1,0 +1,98 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "TellerOrchestrator.java - Internal Processing & Call Flow",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "process-message",
+        "label": "1. processMessage() Flow",
+        "focus": ["lock", "intent", "plan", "barrier", "draft_agent", "risk_agent", "gate_eval", "save_db"],
+        "note": "Luồng tiếp nhận tin nhắn, khóa phiên, nhận diện ý định, chạy song song Evidence Fan-Out và tạo bản nháp."
+      },
+      {
+        "id": "approval-and-post",
+        "label": "2. approve() & execute() Flow",
+        "focus": ["consent", "gate_eval", "authorizer", "core_dispatch", "save_db"],
+        "note": "Luồng thu thập bằng chứng đồng thuận, duyệt 4 mắt chống xung đột và hạch toán Core Banking."
+      }
+    ],
+    "output": "docs/diagrams/teller_orchestrator_internals.html"
+  },
+  "lanes": [
+    { "id": "entry", "label": "1. Entry & Lock (Thread-Safe)" },
+    { "id": "planning", "label": "2. AI ReAct & Sub-Agents" },
+    { "id": "control", "label": "3. Control Gate & 4-Eyes Check", "variant": "exception" },
+    { "id": "gateway", "label": "4. Internal Gateway & Storage" }
+  ],
+  "phases": [
+    { "id": "intake_phase", "label": "1. Khóa & Nhận diện", "fromCol": 0, "toCol": 1 },
+    { "id": "reasoning_phase", "label": "2. Suy luận & Soạn nháp", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "posting_phase", "label": "3. Kiểm soát & Hạch toán", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "entry_group", "label": "Locking & Tracer", "lane": "entry", "fromCol": 0, "toCol": 1 },
+    { "id": "agent_group", "label": "ReAct Agents", "lane": "planning", "fromCol": 2, "toCol": 4, "variant": "emphasis" },
+    { "id": "posting_group", "label": "Core Posting", "lane": "gateway", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["lock", "intent", "plan", "barrier", "draft_agent", "risk_agent", "gate_eval", "authorizer", "core_dispatch"],
+  "nodes": [
+    { "id": "lock", "lane": "entry", "col": 0, "type": "security", "label": "ReentrantLock", "sublabel": "Lock Session ID", "tag": "Thread-Safe", "width": 132 },
+    { "id": "intent", "lane": "entry", "col": 1, "type": "backend", "label": "detectIntent()", "sublabel": "DeepSeek / Rule Engine", "width": 132 },
+    { "id": "plan", "lane": "planning", "col": 1, "type": "backend", "label": "proposePlan()", "sublabel": "Autonomous ReAct", "tag": "S1..S4 Steps", "width": 132 },
+    { "id": "barrier", "lane": "planning", "col": 2, "type": "database", "label": "Evidence Barrier", "sublabel": "Parallel Fan-Out (C+P)", "tag": "CompletableFuture", "width": 132 },
+    { "id": "draft_agent", "lane": "planning", "col": 3, "type": "backend", "label": "Draft Validation", "sublabel": "Live Form & Missing", "width": 132 },
+    { "id": "consent", "lane": "control", "col": 3, "type": "security", "label": "recordConsent()", "sublabel": "OTP / Biometric / Ký", "width": 132 },
+    { "id": "risk_agent", "lane": "planning", "col": 4, "type": "backend", "label": "Risk Assistant", "sublabel": "AML Screen & Limits", "width": 132 },
+    { "id": "gate_eval", "lane": "control", "col": 4, "type": "security", "label": "evaluateControl()", "sublabel": "5 Control Gates", "tag": "Maker-Checker", "width": 132 },
+    { "id": "authorizer", "lane": "control", "col": 5, "type": "security", "label": "PostingAuthorizer", "sublabel": "Verify DB State & Token", "tag": "Posting Auth", "width": 132 },
+    { "id": "core_dispatch", "lane": "gateway", "col": 5, "type": "backend", "label": "InternalApiGateway", "sublabel": "dispatchCorePosting()", "tag": "Core Ledger", "width": 132 },
+    { "id": "save_db", "lane": "gateway", "col": 2, "type": "database", "label": "save() Session", "sublabel": "Persistence & Traces", "width": 132 }
+  ],
+  "edges": [
+    { "id": "e-lock-intent", "from": "lock", "to": "intent", "variant": "default" },
+    { "id": "e-intent-plan", "from": "intent", "to": "plan", "variant": "emphasis" },
+    { "id": "e-plan-barrier", "from": "plan", "to": "barrier", "label": "fan-out", "variant": "emphasis" },
+    { "id": "e-barrier-draft", "from": "barrier", "to": "draft_agent", "label": "context", "variant": "default" },
+    { "id": "e-draft-risk", "from": "draft_agent", "to": "risk_agent", "label": "draft ok", "variant": "emphasis" },
+    { "id": "e-risk-gate", "from": "risk_agent", "to": "gate_eval", "variant": "security" },
+    { "id": "e-consent-gate", "from": "consent", "to": "gate_eval", "label": "evidence ref", "variant": "security" },
+    { "id": "e-gate-auth", "from": "gate_eval", "to": "authorizer", "label": "ready to post", "variant": "security" },
+    { "id": "e-auth-core", "from": "authorizer", "to": "core_dispatch", "label": "token dispatch", "variant": "emphasis" },
+    { "id": "e-barrier-save", "from": "barrier", "to": "save_db", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "TellerOrchestrator - 5 Core Functions",
+      "items": [
+        "1. createSession(): Khởi tạo phiên, gán GDV, start Durable Workflow",
+        "2. processMessage(): ReAct Planning, Evidence Fan-Out, Draft & Risk",
+        "3. recordCustomerConsent(): Thu thập bằng chứng OTP / Sinh trắc học",
+        "4. approve(): Phê duyệt 4 mắt (Kiểm soát viên != GDV lập lệnh)",
+        "5. execute(): Kiểm chứng DB, cấp PostingAuthorization và gửi Core"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Thread Safety & Isolation",
+      "items": [
+        "Mỗi SessionId được bảo vệ bằng ReentrantLock độc lập",
+        "mergePatch() cập nhật state an toàn sau từng bước delegate",
+        "Kiểm soát ngân sách: giới hạn số lượng Tool Calls và Delegations"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Decoupled Financial Posting",
+      "items": [
+        "Agent tuyệt đối không có đường gọi trực tiếp tới Financial-Write Tools",
+        "Hạch toán chỉ diễn ra khi thỏa mãn 100% Control Gates",
+        "Lưu trữ Idempotency Key chống ghi trùng lặp trên Sổ cái"
+      ]
+    }
+  ]
+}
